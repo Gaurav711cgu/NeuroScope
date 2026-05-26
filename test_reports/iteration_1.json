@@ -1,0 +1,81 @@
+{
+  "summary": "Completed comprehensive backend testing of NeuroScope mechanistic interpretability platform. All 12 user stories tested successfully. Run creation, trajectory analysis, causal patching, attribution graphs, NL queries, and experiment management all working correctly.",
+  "backend_issues": {
+    "critical_bugs": [],
+    "flaky_endpoints": [],
+    "minor_issues": [
+      {
+        "issue": "Test specification references experiment slug 'agentic-mechanistic' which doesn't exist",
+        "impact": "Documentation mismatch - actual seeded experiments use different slugs (hallucination-propagation, tool-call-prediction, reasoning-collapse, ioi-persistence, self-correction)",
+        "fix_priority": "LOW",
+        "note": "Functionality works correctly with actual experiment slugs. This is a spec/documentation issue, not a code bug."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "passed_tests": [
+    "US-1: POST /api/v1/runs - Run creation and completion in ~22s (n_steps=3)",
+    "US-2: GET /api/v1/runs/{id} - Full trajectory with steps, feature_timelines, progress, layer_l2_norms, top_features, hallucination signals, activation_path",
+    "US-3: POST /api/v1/runs/{id}/patch - Single patch with KL=0.5617, significant=True, 5 token_changes, interpretation paragraph",
+    "US-4: POST /api/v1/runs/{id}/patch-matrix - 18 patch results across 3 layers (3,7,10), 9 significant patches",
+    "US-5: POST /api/v1/runs/{id}/query - NL query returns grounded answer (935 chars) citing layers/features/steps",
+    "US-6: GET /api/v1/experiments - Returns 5 experiments with hypothesis and finding fields",
+    "US-7: GET /api/v1/experiments/{slug} - Full experiment with steps, feature_timelines, patch_matrix, finding (tested with hallucination-propagation)",
+    "US-8: Experiment slug fallback - Both /runs/{slug}/query and /runs/{slug}/patch work with experiment slugs",
+    "US-9: POST /api/v1/runs/{id}/attribution - Attribution graph with 12 nodes and 65 edges with positive/negative weights",
+    "US-10: GET /api/v1/suggested-tasks - Returns 6 categorized task suggestions",
+    "US-11: GET /api/v1/health - Returns status:ok with model info (gpt2, 12 layers)",
+    "US-12: Activation persistence - 3 activation files persisted as .npz under /app/backend/data/activations/{run_id}/"
+  ],
+  "test_report_links": [
+    "/app/backend_test.py"
+  ],
+  "success_percentage": {
+    "backend": "100% (12/12 user stories passed)",
+    "frontend": "Not tested (backend-only testing requested)"
+  },
+  "action_item_for_main_agent": "Optional: Update test specification or documentation to reference actual experiment slugs (hallucination-propagation, tool-call-prediction, reasoning-collapse, ioi-persistence, self-correction) instead of 'agentic-mechanistic'. This is a minor documentation issue - all functionality works correctly.",
+  "updated_files": [
+    "/app/backend_test.py"
+  ],
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_test_itself": false,
+  "additional_notes": {
+    "performance": {
+      "run_creation": "~22s for n_steps=3 (within expected ~30-60s range)",
+      "single_patch": "~10s",
+      "patch_matrix": "~30-40s for 18 patches across 3 layers",
+      "nl_query": "~10-15s (includes LLM call to claude-sonnet-4-5)",
+      "attribution_graph": "~10-15s"
+    },
+    "model_info": {
+      "model": "gpt2",
+      "n_layers": 12,
+      "d_model": 768,
+      "sae": "gpt2-small-res-jb (Neel Nanda)",
+      "llm_explainer": "claude-sonnet-4-5-20250929"
+    },
+    "data_persistence": {
+      "activations": "Stored as float16 .npz files under /app/backend/data/activations/{run_id}/step_{n}.npz",
+      "runs": "Persisted to MongoDB agent_runs collection",
+      "experiments": "5 pre-seeded experiments in MongoDB experiments collection",
+      "patches": "Stored in causal_patches collection",
+      "queries": "Stored in queries collection",
+      "attribution_graphs": "Stored in attribution_graphs collection"
+    },
+    "cross_step_patching": {
+      "description": "Novel research contribution - patches one step's residual stream into another step's forward pass",
+      "metrics": "Returns KL divergence, significance boolean, top-5 token probability shifts, and LLM interpretation",
+      "tested": "Single patch and batch patch-matrix both working correctly"
+    },
+    "hallucination_scoring": {
+      "description": "3-signal risk score (entropy + attention diffusion + uncertainty features)",
+      "position": "Early-warning diagnostic with ~20-30% intervention success rate",
+      "tested": "Hallucination signals present in all step outputs"
+    }
+  }
+}

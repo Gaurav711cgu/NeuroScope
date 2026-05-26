@@ -1,0 +1,170 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap");
+
+:root {
+    --ns-bg-canvas: #0b0f14;
+    --ns-bg-surface-1: #0f1620;
+    --ns-bg-surface-2: #121c28;
+    --ns-bg-surface-3: #162233;
+    --ns-bg-codeblock: #0a111a;
+    --ns-fg-primary: #e6edf6;
+    --ns-fg-secondary: #b7c3d6;
+    --ns-fg-muted: #7f8ca3;
+    --ns-fg-faint: #5b667a;
+    --ns-border: #26344a;
+    --ns-border-subtle: #1e2a3b;
+    --ns-border-strong: #334764;
+    --ns-accent: #4fb3c8;
+    --ns-accent-2: #2e8fa6;
+    --ns-mint: #6ee7b7;
+    --ns-amber: #f2c14e;
+    --ns-rose: #f87171;
+    --ns-success: #6ee7b7;
+    --ns-warning: #f2c14e;
+    --ns-danger: #f87171;
+    --ns-focus: #7dd3fc;
+    --ns-radius-sm: 8px;
+    --ns-radius-md: 12px;
+    --ns-radius-lg: 16px;
+    --ns-shadow-elev-1: 0 1px 0 rgba(255, 255, 255, 0.04),
+        0 10px 30px rgba(0, 0, 0, 0.35);
+    --ns-shadow-elev-2: 0 1px 0 rgba(255, 255, 255, 0.05),
+        0 18px 50px rgba(0, 0, 0, 0.45);
+}
+
+@layer base {
+    :root {
+        --background: 215 45% 6%;
+        --foreground: 215 35% 94%;
+        --card: 215 40% 8%;
+        --card-foreground: 215 35% 94%;
+        --popover: 215 45% 7%;
+        --popover-foreground: 215 35% 94%;
+        --primary: 191 55% 55%;
+        --primary-foreground: 215 45% 8%;
+        --secondary: 215 30% 14%;
+        --secondary-foreground: 215 35% 94%;
+        --muted: 215 28% 14%;
+        --muted-foreground: 215 18% 68%;
+        --accent: 215 30% 14%;
+        --accent-foreground: 215 35% 94%;
+        --destructive: 0 78% 60%;
+        --destructive-foreground: 215 35% 94%;
+        --border: 215 28% 20%;
+        --input: 215 28% 20%;
+        --ring: 199 85% 70%;
+        --chart-1: 191 55% 55%;
+        --chart-2: 159 70% 67%;
+        --chart-3: 40 86% 62%;
+        --chart-4: 0 90% 71%;
+        --chart-5: 213 94% 78%;
+        --radius: 0.75rem;
+    }
+}
+
+@layer base {
+    * {
+        @apply border-border;
+    }
+    html,
+    body,
+    #root {
+        background: var(--ns-bg-canvas);
+        color: var(--ns-fg-primary);
+        font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        min-height: 100vh;
+    }
+    body {
+        margin: 0;
+    }
+}
+
+@layer components {
+    .font-mono {
+        font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo,
+            monospace;
+        font-variant-numeric: tabular-nums;
+    }
+    .ns-card {
+        background: var(--ns-bg-surface-1);
+        border: 1px solid var(--ns-border-subtle);
+        border-radius: var(--ns-radius-md);
+        box-shadow: var(--ns-shadow-elev-1);
+    }
+    .ns-card-strong {
+        background: var(--ns-bg-surface-2);
+        border: 1px solid var(--ns-border);
+        border-radius: var(--ns-radius-md);
+    }
+    .ns-section-title {
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--ns-fg-muted);
+    }
+    .ns-divider {
+        height: 1px;
+        background: var(--ns-border-subtle);
+        width: 100%;
+    }
+    .ns-noise-bg::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        opacity: 0.07;
+        pointer-events: none;
+        background-image: radial-gradient(
+                circle at 20% 30%,
+                #2e8fa6 0,
+                transparent 30%
+            ),
+            radial-gradient(circle at 80% 70%, #6ee7b7 0, transparent 30%);
+    }
+    .ns-kbd {
+        display: inline-flex;
+        align-items: center;
+        height: 18px;
+        padding: 0 6px;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 10px;
+        border: 1px solid var(--ns-border);
+        border-radius: 4px;
+        color: var(--ns-fg-secondary);
+        background: var(--ns-bg-surface-2);
+    }
+    .ns-status-dot {
+        display: inline-block;
+        width: 6px;
+        height: 6px;
+        border-radius: 999px;
+    }
+    /* Allow chart svgs to not steal pointer events from cards */
+    .recharts-wrapper {
+        cursor: default;
+    }
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+    }
+    ::-webkit-scrollbar-thumb {
+        background: var(--ns-border);
+        border-radius: 8px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: var(--ns-border-strong);
+    }
+    ::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    ::selection {
+        background: #0e2a3a;
+        color: var(--ns-fg-primary);
+    }
+}
