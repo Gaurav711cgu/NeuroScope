@@ -55,9 +55,10 @@ export default function RunAnalysis({ presetRun = null }) {
     const patchMatrix = run?.patch_matrix || [];
 
     const filteredTimelines = useMemo(() => {
-        if (!pickedFeatureId) return timelines;
-        return timelines.filter((t) => t.feature_id === pickedFeatureId).concat(timelines.filter((t) => t.feature_id !== pickedFeatureId));
-    }, [timelines, pickedFeatureId]);
+        const list = run?.feature_timelines || [];
+        if (!pickedFeatureId) return list;
+        return list.filter((t) => t.feature_id === pickedFeatureId).concat(list.filter((t) => t.feature_id !== pickedFeatureId));
+    }, [run?.feature_timelines, pickedFeatureId]);
 
     async function runMatrix() {
         setMatrixLoading(true);
