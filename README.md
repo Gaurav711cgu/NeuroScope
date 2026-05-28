@@ -2,7 +2,7 @@
 title: NeuroScope
 emoji: 🧠
 colorFrom: indigo
-colorTo: violet
+colorTo: purple
 sdk: docker
 pinned: false
 ---
