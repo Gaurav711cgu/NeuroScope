@@ -19,22 +19,7 @@ COPY backend/ ./backend/
 ENV PORT=7860
 ENV PYTHONPATH=/app/backend
 
-# Pre-download Gemma-2-2b-it weights at build time to avoid cold-start delays.
-# HF_TOKEN must be set as a Space secret (NOT hardcoded here).
-# In HF Space: Settings → Secrets → Add secret HF_TOKEN
-RUN --mount=type=secret,id=HF_TOKEN \
-    HF_TOKEN=$(cat /run/secrets/HF_TOKEN 2>/dev/null || echo "") \
-    python -c "
-import os
-token = os.environ.get('HF_TOKEN', '')
-if token:
-    from huggingface_hub import snapshot_download
-    print('Pre-downloading google/gemma-2-2b-it weights...')
-    snapshot_download('google/gemma-2-2b-it', token=token, ignore_patterns=['*.msgpack', '*.h5'])
-    print('Done.')
-else:
-    print('HF_TOKEN not set — weights will be downloaded on first request.')
-"
+# Model weights are loaded and cached dynamically at runtime to keep builds fast and stable.
 
 WORKDIR /app/backend
 
