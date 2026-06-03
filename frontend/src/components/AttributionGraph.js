@@ -31,6 +31,33 @@ export default function AttributionGraph({ graph, width = 520, height = 320 }) {
             .force("center", d3.forceCenter(width / 2, height / 2))
             .force("collide", d3.forceCollide().radius(18));
 
+        // Define markers for directed causal edges
+        const defs = svg.append("defs");
+        
+        defs.append("marker")
+            .attr("id", "arrow-pos")
+            .attr("viewBox", "0 -5 10 10")
+            .attr("refX", 22)
+            .attr("refY", 0)
+            .attr("markerWidth", 5)
+            .attr("markerHeight", 5)
+            .attr("orient", "auto")
+            .append("path")
+            .attr("d", "M0,-4L8,0L0,4")
+            .attr("fill", "#6EE7B7");
+
+        defs.append("marker")
+            .attr("id", "arrow-neg")
+            .attr("viewBox", "0 -5 10 10")
+            .attr("refX", 22)
+            .attr("refY", 0)
+            .attr("markerWidth", 5)
+            .attr("markerHeight", 5)
+            .attr("orient", "auto")
+            .append("path")
+            .attr("d", "M0,-4L8,0L0,4")
+            .attr("fill", "#F87171");
+
         const link = svg
             .append("g")
             .attr("stroke-opacity", 0.4)
@@ -39,7 +66,14 @@ export default function AttributionGraph({ graph, width = 520, height = 320 }) {
             .enter()
             .append("line")
             .attr("stroke", (d) => (d.weight > 0 ? "#6EE7B7" : "#F87171"))
-            .attr("stroke-width", (d) => Math.max(0.5, Math.abs(d.weight) * 2));
+            .attr("stroke-width", (d) => Math.max(0.5, Math.abs(d.weight) * 2))
+            .attr("marker-end", (d) => {
+                // If it's a causal graph (path patched), render directed arrows
+                if (graph.method === "causal_path_patching" || graph.edges?.[0]?.causal) {
+                    return d.weight > 0 ? "url(#arrow-pos)" : "url(#arrow-neg)";
+                }
+                return null;
+            });
 
         const maxActivation = Math.max(
             1e-6,

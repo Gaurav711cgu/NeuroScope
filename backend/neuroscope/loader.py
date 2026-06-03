@@ -49,16 +49,38 @@ def get_model():
     if _model is None:
         with _lock:
             if _model is None:
-                logger.info("Loading HookedTransformer %s ...", MODEL_NAME)
+                device = "cuda" if torch.cuda.is_available() else "cpu"
+                quant = os.environ.get("NEUROSCOPE_QUANTIZATION", "").lower()
+                load_in_8bit = quant == "8bit"
+                load_in_4bit = quant == "4bit"
+
+                logger.info("Loading HookedTransformer %s on %s ...", MODEL_NAME, device)
                 from transformer_lens import HookedTransformer
+
+                model_kwargs = {
+                    "device": device,
+                    "fold_ln": True,
+                    "center_writing_weights": True,
+                    "center_unembed": True,
+                    # Required for Gemma-2 via TransformerLens bridge
+                    "dtype": torch.bfloat16 if "gemma" in MODEL_NAME.lower() else None,
+                }
+
+                if device == "cuda" and (load_in_8bit or load_in_4bit):
+                    try:
+                        import bitsandbytes  # noqa: F401
+                        if load_in_8bit:
+                            model_kwargs["load_in_8bit"] = True
+                            logger.info("Enabling 8-bit quantization via bitsandbytes")
+                        elif load_in_4bit:
+                            model_kwargs["load_in_4bit"] = True
+                            logger.info("Enabling 4-bit quantization via bitsandbytes")
+                    except ImportError:
+                        logger.warning("bitsandbytes import failed, falling back to unquantized loading")
+
                 _model = HookedTransformer.from_pretrained(
                     MODEL_NAME,
-                    device="cpu",
-                    fold_ln=True,
-                    center_writing_weights=True,
-                    center_unembed=True,
-                    # Required for Gemma-2 via TransformerLens bridge
-                    dtype=torch.bfloat16 if "gemma" in MODEL_NAME.lower() else None,
+                    **model_kwargs
                 )
                 _model.eval()
                 logger.info(

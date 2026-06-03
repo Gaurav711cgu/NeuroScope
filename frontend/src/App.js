@@ -11,6 +11,7 @@ import StepDetail from "@/pages/StepDetail";
 import ExperimentsLibrary from "@/pages/ExperimentsLibrary";
 import ExperimentDetail from "@/pages/ExperimentDetail";
 import Docs from "@/pages/Docs";
+import Findings from "@/pages/Findings";
 
 function ScrollToTop() {
     const { pathname } = useLocation();
@@ -36,6 +37,7 @@ function Shell() {
                     element={<ExperimentDetail />}
                 />
                 <Route path="/docs" element={<Docs />} />
+                <Route path="/findings" element={<Findings />} />
             </Routes>
             <Toaster
                 theme="dark"

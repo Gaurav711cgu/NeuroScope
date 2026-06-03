@@ -46,6 +46,12 @@ export default function TopBar() {
                         testid="nav-experiments"
                     />
                     <NavTab
+                        to="/findings"
+                        icon={Activity}
+                        label="Findings"
+                        testid="nav-findings"
+                    />
+                    <NavTab
                         to="/docs"
                         icon={BookOpen}
                         label="Docs"

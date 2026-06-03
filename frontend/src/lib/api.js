@@ -30,6 +30,8 @@ export const api = {
         client.get(`/experiments/${slug}`).then((r) => r.data),
     getFeature: (layer, fid) =>
         client.get(`/feature/${layer}/${fid}`).then((r) => r.data),
+    steer: (body) => client.post("/steer", body).then((r) => r.data),
+    trainProbe: (body) => client.post("/probe/train", body).then((r) => r.data),
 };
 
 export default api;
