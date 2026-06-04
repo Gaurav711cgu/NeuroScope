@@ -167,4 +167,32 @@
         background: #0e2a3a;
         color: var(--ns-fg-primary);
     }
+    
+    .cmd-watermark {
+        position: absolute;
+        top: 20px;
+        right: 40px;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 10px;
+        color: rgba(79, 179, 200, 0.03);
+        pointer-events: none;
+        user-select: none;
+        text-align: left;
+        z-index: 0;
+        overflow: hidden;
+        max-height: 400px;
+        animation: scrollText 45s linear infinite;
+    }
+    @keyframes scrollText {
+        0% { transform: translateY(0); }
+        50% { transform: translateY(-30%); }
+        100% { transform: translateY(0); }
+    }
+    .animate-fadeIn {
+        animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(8px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
 }
