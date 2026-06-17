@@ -50,7 +50,7 @@ def verify_all():
         res = asyncio.run(test_llm())
         print(f"   Response: '{res}'")
         if "ready" in res.lower():
-            print("   ✅ Google Gemini API key and gemini-1.5-flash model are active and working!\n")
+            print("   ✅ Google Gemini API key and gemini-2.5-flash model are active and working!\n")
         else:
             print("   ⚠️  Gemini returned unexpected response, but connection succeeded!\n")
     except Exception as e:

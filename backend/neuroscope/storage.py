@@ -48,12 +48,12 @@ def save_step_activations(
             logger.warning("Firebase Storage upload failed; falling back to local disk: %s", e)
 
     # Local Fallback
-    local_path = LOCAL_DATA_DIR / "runs" / run_id / f"step_{step_n}.npz"
+    local_path = LOCAL_DATA_DIR / run_id / f"step_{step_n}.npz"
     local_path.parent.mkdir(parents=True, exist_ok=True)
     with open(local_path, "wb") as f:
         f.write(buf.getvalue())
     logger.info("Saved activations to local disk → %s", local_path)
-    return f"local://{path}"
+    return f"local://{run_id}/step_{step_n}.npz"
 
 
 def load_step_activations(path: str) -> dict:

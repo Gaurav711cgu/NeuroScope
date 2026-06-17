@@ -33,7 +33,8 @@ DEFAULT_SAE_LAYER = int(os.environ.get("NEUROSCOPE_SAE_LAYER", "12"))
 # We capture residual stream at layers 6, 12, 18, 24 (4 of 26) to limit storage.
 # Full capture: 26 * 512 * 2304 * 2 bytes ≈ 61MB per step. Too large for Supabase free tier.
 # 4-layer capture: ~10MB per step — well within the 1GB bucket limit.
-CAPTURE_LAYERS = [6, 12, 18, 24]
+is_gemma = "gemma" in MODEL_NAME.lower()
+CAPTURE_LAYERS = [6, 12, 18, 24] if is_gemma else [3, 6, 7, 9, 10]
 
 torch.set_num_threads(int(os.environ.get("NEUROSCOPE_THREADS", "4")))
 

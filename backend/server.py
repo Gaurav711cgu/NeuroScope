@@ -230,12 +230,21 @@ async def suggested_tasks():
 @v1.post("/runs")
 async def create_run(payload: RunCreate, background_tasks: BackgroundTasks):
     run_id = str(uuid.uuid4())
+    model_name = os.environ.get("NEUROSCOPE_MODEL", "google/gemma-2-2b-it")
+    is_gpt2 = "gpt2" in model_name.lower()
+    sae_layer = payload.sae_layer
+    if is_gpt2:
+        if sae_layer == 12:
+            sae_layer = 7
+        else:
+            sae_layer = min(sae_layer, 11)
+            
     doc = {
         "id": run_id,
         "task": payload.task,
         "n_steps": payload.n_steps,
-        "sae_layer": payload.sae_layer,
-        "model_name": "gemma-2-2b-it",
+        "sae_layer": sae_layer,
+        "model_name": model_name,
         "status": "queued",
         "created_at": _now(),
         "progress": {"stage": "queued", "completed_steps": 0},
@@ -244,7 +253,7 @@ async def create_run(payload: RunCreate, background_tasks: BackgroundTasks):
     loop = asyncio.get_running_loop()
     await loop.run_in_executor(None, lambda: get_db().collection("agent_runs").document(run_id).set(doc))
     background_tasks.add_task(
-        _execute_run, run_id, payload.task, payload.n_steps, payload.sae_layer,
+        _execute_run, run_id, payload.task, payload.n_steps, sae_layer,
         payload.inject_observation or {},
     )
     return {"run_id": run_id, "status": "queued"}
@@ -357,14 +366,25 @@ async def run_patch(run_id: str, payload: PatchRequest):
     tgt = next((s for s in run.get("steps", []) if s["step_n"] == payload.target_step), None)
     if not src or not tgt:
         raise HTTPException(status_code=404, detail="step missing")
-    if not (0 <= payload.patch_layer <= 25):
-        raise HTTPException(status_code=400, detail="patch_layer must be 0–25 (Gemma-2-2b-it has 26 layers)")
+        
+    model_name = os.environ.get("NEUROSCOPE_MODEL", "google/gemma-2-2b-it")
+    is_gpt2 = "gpt2" in model_name.lower()
+    patch_layer = payload.patch_layer
+    if is_gpt2:
+        if patch_layer == 12:
+            patch_layer = 7
+        else:
+            patch_layer = min(patch_layer, 11)
+            
+    max_layer = 11 if is_gpt2 else 25
+    if not (0 <= payload.patch_layer <= max_layer) and not (is_gpt2 and payload.patch_layer == 12):
+        raise HTTPException(status_code=400, detail=f"patch_layer must be 0–{max_layer}")
 
     model = get_model()
     loop = asyncio.get_running_loop()
     res = await loop.run_in_executor(
         None, cross_step_patch,
-        model, src["activation_path"], tgt["prompt"], payload.patch_layer,
+        model, src["activation_path"], tgt["prompt"], patch_layer,
     )
     record = {
         "id": str(uuid.uuid4()),
@@ -394,8 +414,14 @@ async def run_patch_matrix(run_id: str, payload: PatchSweepRequest):
                 return s["prompt"]
         return ""
 
+    model_name = os.environ.get("NEUROSCOPE_MODEL", "google/gemma-2-2b-it")
+    is_gpt2 = "gpt2" in model_name.lower()
+    
+    layers = payload.layers or ([3, 7, 10] if is_gpt2 else [6, 12, 18])
+    if is_gpt2 and payload.layers == [6, 12, 18]:
+        layers = [3, 7, 10]
+
     loop = asyncio.get_running_loop()
-    layers = payload.layers or [6, 12, 18]   # Gemma-2-2b-it captured layers
     results = await loop.run_in_executor(None, patch_matrix, steps, target_prompt_fn, layers)
     summary = {
         "layers": layers,
@@ -435,6 +461,15 @@ async def run_attribution(run_id: str, payload: AttributionRequest):
     if not step:
         raise HTTPException(status_code=404, detail="step not found")
 
+    model_name = os.environ.get("NEUROSCOPE_MODEL", "google/gemma-2-2b-it")
+    is_gpt2 = "gpt2" in model_name.lower()
+    layer = payload.layer
+    if is_gpt2:
+        if layer == 12:
+            layer = 7
+        else:
+            layer = min(layer, 11)
+
     model = None
     real_run = payload.real
     if real_run:
@@ -450,7 +485,7 @@ async def run_attribution(run_id: str, payload: AttributionRequest):
 
     graph = await loop.run_in_executor(
         None,
-        lambda: causal_attribution_for_step(model, step["prompt"], payload.layer, top_feats, real_run)
+        lambda: causal_attribution_for_step(model, step["prompt"], layer, top_feats, real_run)
     )
 
     record = {

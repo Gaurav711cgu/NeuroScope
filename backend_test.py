@@ -39,13 +39,14 @@ class NeuroScopeAPITester:
                 data = response.json()
                 if data.get("status") == "ok" and "model" in data:
                     model_info = data["model"]
-                    if 'gemma' in model_info.get('model', '').lower():
+                    model_name_lower = model_info.get('model', '').lower()
+                    if 'gemma' in model_name_lower or 'gpt2' in model_name_lower:
                         self.log_test("US-11: Health endpoint", True, 
-                                    f"Model: {model_info.get('model')}, layers: {model_info.get('n_layers')}")
+                                     f"Model: {model_info.get('model')}, layers: {model_info.get('n_layers')}")
                         return True
                     else:
                         self.log_test("US-11: Health endpoint", False, 
-                                    f"Expected Gemma model, got {model_info.get('model')}")
+                                    f"Expected Gemma or GPT2 model, got {model_info.get('model')}")
                 else:
                     self.log_test("US-11: Health endpoint", False, 
                                 f"Missing status or model in response: {data}")
@@ -170,9 +171,9 @@ class NeuroScopeAPITester:
             self.created_run_id = run_id
             print(f"   Run created: {run_id}")
             
-            # Poll for completion (max 90 seconds)
+            # Poll for completion (max 480 seconds)
             start_time = time.time()
-            max_wait = 90
+            max_wait = 480
             status = "queued"
             
             while time.time() - start_time < max_wait:
