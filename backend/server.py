@@ -847,6 +847,24 @@ async def run_findings_trajectory(payload: FindingsRequest):
     }
 
 
+class ShieldRequest(BaseModel):
+    task: str
+    rules: list[dict]
+    real: Optional[bool] = False
+
+
+@v1.post("/shield/run")
+async def run_shield_endpoint(payload: ShieldRequest):
+    """Run a comparative agent trajectory with/without the active steering shield."""
+    from neuroscope.shield_runner import run_shield_trajectory
+    loop = asyncio.get_running_loop()
+    result = await loop.run_in_executor(
+        None,
+        lambda: run_shield_trajectory(payload.task, payload.rules, payload.real)
+    )
+    return result
+
+
 # ---------------------------------------------------------------------------
 # Mount
 # ---------------------------------------------------------------------------

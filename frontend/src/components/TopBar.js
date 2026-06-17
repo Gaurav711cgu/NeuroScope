@@ -1,5 +1,5 @@
 import { Link, NavLink, useLocation } from "react-router-dom";
-import { Activity, FlaskConical, BookOpen, Play, Github } from "lucide-react";
+import { Activity, FlaskConical, BookOpen, Play, Github, Shield } from "lucide-react";
 
 export default function TopBar() {
     const { pathname } = useLocation();
@@ -50,6 +50,12 @@ export default function TopBar() {
                         icon={Activity}
                         label="Findings"
                         testid="nav-findings"
+                    />
+                    <NavTab
+                        to="/shield"
+                        icon={Shield}
+                        label="NeuroShield"
+                        testid="nav-shield"
                     />
                     <NavTab
                         to="/docs"

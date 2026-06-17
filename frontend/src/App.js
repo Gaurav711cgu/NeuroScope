@@ -12,6 +12,7 @@ import ExperimentsLibrary from "@/pages/ExperimentsLibrary";
 import ExperimentDetail from "@/pages/ExperimentDetail";
 import Docs from "@/pages/Docs";
 import Findings from "@/pages/Findings";
+import NeuroShield from "@/pages/NeuroShield";
 
 function ScrollToTop() {
     const { pathname } = useLocation();
@@ -38,6 +39,7 @@ function Shell() {
                 />
                 <Route path="/docs" element={<Docs />} />
                 <Route path="/findings" element={<Findings />} />
+                <Route path="/shield" element={<NeuroShield />} />
             </Routes>
             <Toaster
                 theme="dark"
