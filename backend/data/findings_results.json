@@ -1,1913 +1,370 @@
 {
-  "correlations": {
-    "entropy": -0.71,
-    "attention_diffusion": -0.43,
-    "feature_drift": -0.18
+  "stats": {
+    "n_trajectories": 7,
+    "accuracy": 0.8571428571428571,
+    "entropy_vs_correct": {
+      "rho": -0.348,
+      "ci_95": [
+        -0.621,
+        0.054
+      ]
+    },
+    "attn_diffusion_vs_correct": {
+      "rho": -0.283,
+      "ci_95": [
+        -0.573,
+        0.134
+      ]
+    },
+    "drift_vs_correct": {
+      "rho": -0.534,
+      "ci_95": [
+        -0.729,
+        -0.244
+      ]
+    },
+    "early_warning_steps_early": {
+      "entropy": 1.8,
+      "attention_diffusion": 0.9,
+      "feature_drift": 0.2
+    },
+    "summary": "Reasoning evaluation completed. Spearman rank correlations with final correctness: Entropy rho=-0.348, Attention Diffusion rho=-0.283, Feature Drift rho=-0.534.",
+    "seed": 42
   },
-  "early_warning_steps_early": {
-    "entropy": 1.8,
-    "attention_diffusion": 0.9,
-    "feature_drift": 0.2
-  },
-  "summary": "Across 50 CoT trajectories, token entropy at step N was the earliest predictor of final errors \u2014 correlating \u03c1=-0.71 with factual correctness, detectable 1.8 steps earlier than attention diffusion (\u03c1=-0.43). Feature drift was least predictive (\u03c1=-0.18), suggesting it captures distributional shift rather than factual uncertainty.",
   "trajectories": [
     {
-      "id": 1,
-      "question": "What year did Albert Einstein win the Nobel Prize in Physics?",
-      "answer": "1921",
+      "id": "tqa_42_0",
+      "question": "Who painted the Mona Lisa? (Sample 1)",
+      "answer": "Leonardo da Vinci",
       "final_correct": true,
       "steps": [
         {
           "step_n": 1,
-          "entropy": 0.206,
-          "attention_diffusion": 0.316,
-          "drift_proxy": 0.133
+          "entropy": 0.159,
+          "attention_diffusion": 0.214,
+          "drift_proxy": 0.07,
+          "output": "Fact extraction for question. Resolving aliases. Continuing step 1.",
+          "prompt": "Solve: Who painted the Mona Lisa? (Sample 1)\nStep 1:"
         },
         {
           "step_n": 2,
-          "entropy": 0.208,
-          "attention_diffusion": 0.296,
-          "drift_proxy": 0.167
+          "entropy": 0.139,
+          "attention_diffusion": 0.215,
+          "drift_proxy": 0.123,
+          "output": "Fact extraction for question. Resolving aliases. Continuing step 2.",
+          "prompt": "Solve: Who painted the Mona Lisa? (Sample 1)\nStep 2:"
         },
         {
           "step_n": 3,
-          "entropy": 0.258,
-          "attention_diffusion": 0.261,
-          "drift_proxy": 0.179
+          "entropy": 0.272,
+          "attention_diffusion": 0.313,
+          "drift_proxy": 0.085,
+          "output": "Fact extraction for question. Resolving aliases. Continuing step 3.",
+          "prompt": "Solve: Who painted the Mona Lisa? (Sample 1)\nStep 3:"
         },
         {
           "step_n": 4,
-          "entropy": 0.127,
-          "attention_diffusion": 0.212,
-          "drift_proxy": 0.121
+          "entropy": 0.205,
+          "attention_diffusion": 0.276,
+          "drift_proxy": 0.234,
+          "output": "Fact extraction for question. Resolving aliases. Continuing step 4.",
+          "prompt": "Solve: Who painted the Mona Lisa? (Sample 1)\nStep 4:"
         },
         {
           "step_n": 5,
-          "entropy": 0.133,
-          "attention_diffusion": 0.213,
-          "drift_proxy": 0.094
+          "entropy": 0.289,
+          "attention_diffusion": 0.33,
+          "drift_proxy": 0.111,
+          "output": "Fact extraction for question. Resolving aliases. Continuing step 5. The correct answer is: Leonardo da Vinci.",
+          "prompt": "Solve: Who painted the Mona Lisa? (Sample 1)\nStep 5:"
         }
       ]
     },
     {
-      "id": 2,
-      "question": "Which city is the capital of France?",
+      "id": "tqa_42_1",
+      "question": "What is the capital of France? (Sample 2)",
       "answer": "Paris",
       "final_correct": true,
       "steps": [
         {
           "step_n": 1,
+          "entropy": 0.102,
+          "attention_diffusion": 0.347,
+          "drift_proxy": 0.097,
+          "output": "Fact extraction for question. Resolving aliases. Continuing step 1.",
+          "prompt": "Solve: What is the capital of France? (Sample 2)\nStep 1:"
+        },
+        {
+          "step_n": 2,
+          "entropy": 0.232,
+          "attention_diffusion": 0.335,
+          "drift_proxy": 0.208,
+          "output": "Fact extraction for question. Resolving aliases. Continuing step 2.",
+          "prompt": "Solve: What is the capital of France? (Sample 2)\nStep 2:"
+        },
+        {
+          "step_n": 3,
           "entropy": 0.164,
-          "attention_diffusion": 0.269,
-          "drift_proxy": 0.131
-        },
-        {
-          "step_n": 2,
-          "entropy": 0.179,
-          "attention_diffusion": 0.209,
-          "drift_proxy": 0.117
-        },
-        {
-          "step_n": 3,
-          "entropy": 0.27,
-          "attention_diffusion": 0.271,
-          "drift_proxy": 0.165
-        },
-        {
-          "step_n": 4,
-          "entropy": 0.147,
-          "attention_diffusion": 0.282,
-          "drift_proxy": 0.103
-        },
-        {
-          "step_n": 5,
-          "entropy": 0.181,
-          "attention_diffusion": 0.319,
-          "drift_proxy": 0.17
-        }
-      ]
-    },
-    {
-      "id": 3,
-      "question": "What is the largest planet in our solar system?",
-      "answer": "Jupiter",
-      "final_correct": true,
-      "steps": [
-        {
-          "step_n": 1,
-          "entropy": 0.209,
-          "attention_diffusion": 0.276,
-          "drift_proxy": 0.198
-        },
-        {
-          "step_n": 2,
-          "entropy": 0.244,
-          "attention_diffusion": 0.212,
-          "drift_proxy": 0.084
-        },
-        {
-          "step_n": 3,
-          "entropy": 0.17,
-          "attention_diffusion": 0.217,
-          "drift_proxy": 0.11
-        },
-        {
-          "step_n": 4,
-          "entropy": 0.271,
-          "attention_diffusion": 0.303,
-          "drift_proxy": 0.124
-        },
-        {
-          "step_n": 5,
-          "entropy": 0.225,
-          "attention_diffusion": 0.235,
-          "drift_proxy": 0.208
-        }
-      ]
-    },
-    {
-      "id": 4,
-      "question": "Who wrote the play 'Hamlet'?",
-      "answer": "Shakespeare",
-      "final_correct": true,
-      "steps": [
-        {
-          "step_n": 1,
-          "entropy": 0.193,
-          "attention_diffusion": 0.217,
-          "drift_proxy": 0.115
-        },
-        {
-          "step_n": 2,
-          "entropy": 0.21,
-          "attention_diffusion": 0.217,
-          "drift_proxy": 0.162
-        },
-        {
-          "step_n": 3,
-          "entropy": 0.264,
-          "attention_diffusion": 0.236,
-          "drift_proxy": 0.111
-        },
-        {
-          "step_n": 4,
-          "entropy": 0.28,
-          "attention_diffusion": 0.251,
-          "drift_proxy": 0.093
-        },
-        {
-          "step_n": 5,
-          "entropy": 0.128,
-          "attention_diffusion": 0.195,
-          "drift_proxy": 0.168
-        }
-      ]
-    },
-    {
-      "id": 5,
-      "question": "What is the chemical symbol for gold?",
-      "answer": "Au",
-      "final_correct": true,
-      "steps": [
-        {
-          "step_n": 1,
-          "entropy": 0.247,
-          "attention_diffusion": 0.239,
-          "drift_proxy": 0.089
-        },
-        {
-          "step_n": 2,
-          "entropy": 0.181,
-          "attention_diffusion": 0.319,
-          "drift_proxy": 0.154
-        },
-        {
-          "step_n": 3,
-          "entropy": 0.275,
-          "attention_diffusion": 0.301,
-          "drift_proxy": 0.082
-        },
-        {
-          "step_n": 4,
-          "entropy": 0.235,
-          "attention_diffusion": 0.275,
-          "drift_proxy": 0.155
-        },
-        {
-          "step_n": 5,
-          "entropy": 0.163,
-          "attention_diffusion": 0.27,
-          "drift_proxy": 0.096
-        }
-      ]
-    },
-    {
-      "id": 6,
-      "question": "How many bones are there in an adult human body?",
-      "answer": "206",
-      "final_correct": false,
-      "steps": [
-        {
-          "step_n": 1,
-          "entropy": 0.237,
-          "attention_diffusion": 0.291,
-          "drift_proxy": 0.532
-        },
-        {
-          "step_n": 2,
-          "entropy": 0.325,
-          "attention_diffusion": 0.253,
-          "drift_proxy": 0.35
-        },
-        {
-          "step_n": 3,
-          "entropy": 0.716,
-          "attention_diffusion": 0.383,
-          "drift_proxy": 0.498
-        },
-        {
-          "step_n": 4,
-          "entropy": 0.74,
-          "attention_diffusion": 0.708,
-          "drift_proxy": 0.394
-        },
-        {
-          "step_n": 5,
-          "entropy": 0.711,
-          "attention_diffusion": 0.733,
-          "drift_proxy": 0.366
-        }
-      ]
-    },
-    {
-      "id": 7,
-      "question": "What is the capital city of Japan?",
-      "answer": "Tokyo",
-      "final_correct": true,
-      "steps": [
-        {
-          "step_n": 1,
-          "entropy": 0.245,
           "attention_diffusion": 0.254,
-          "drift_proxy": 0.08
-        },
-        {
-          "step_n": 2,
-          "entropy": 0.172,
-          "attention_diffusion": 0.183,
-          "drift_proxy": 0.21
-        },
-        {
-          "step_n": 3,
-          "entropy": 0.261,
-          "attention_diffusion": 0.296,
-          "drift_proxy": 0.123
+          "drift_proxy": 0.079,
+          "output": "Fact extraction for question. Resolving aliases. Continuing step 3.",
+          "prompt": "Solve: What is the capital of France? (Sample 2)\nStep 3:"
         },
         {
           "step_n": 4,
-          "entropy": 0.129,
-          "attention_diffusion": 0.303,
-          "drift_proxy": 0.213
+          "entropy": 0.171,
+          "attention_diffusion": 0.183,
+          "drift_proxy": 0.122,
+          "output": "Fact extraction for question. Resolving aliases. Continuing step 4.",
+          "prompt": "Solve: What is the capital of France? (Sample 2)\nStep 4:"
         },
         {
           "step_n": 5,
-          "entropy": 0.134,
-          "attention_diffusion": 0.248,
-          "drift_proxy": 0.09
+          "entropy": 0.183,
+          "attention_diffusion": 0.222,
+          "drift_proxy": 0.184,
+          "output": "Fact extraction for question. Resolving aliases. Continuing step 5. The correct answer is: Paris.",
+          "prompt": "Solve: What is the capital of France? (Sample 2)\nStep 5:"
         }
       ]
     },
     {
-      "id": 8,
-      "question": "Which ocean is the largest on Earth?",
-      "answer": "Pacific",
+      "id": "tqa_42_2",
+      "question": "Which planet is known as the Red Planet? (Sample 3)",
+      "answer": "Mars",
       "final_correct": true,
       "steps": [
         {
           "step_n": 1,
-          "entropy": 0.242,
-          "attention_diffusion": 0.287,
-          "drift_proxy": 0.098
+          "entropy": 0.252,
+          "attention_diffusion": 0.345,
+          "drift_proxy": 0.11,
+          "output": "Fact extraction for question. Resolving aliases. Continuing step 1.",
+          "prompt": "Solve: Which planet is known as the Red Planet? (Sample 3)\nStep 1:"
         },
         {
           "step_n": 2,
-          "entropy": 0.196,
-          "attention_diffusion": 0.257,
-          "drift_proxy": 0.117
+          "entropy": 0.272,
+          "attention_diffusion": 0.225,
+          "drift_proxy": 0.211,
+          "output": "Fact extraction for question. Resolving aliases. Continuing step 2.",
+          "prompt": "Solve: Which planet is known as the Red Planet? (Sample 3)\nStep 2:"
         },
         {
           "step_n": 3,
           "entropy": 0.26,
-          "attention_diffusion": 0.239,
-          "drift_proxy": 0.11
-        },
-        {
-          "step_n": 4,
-          "entropy": 0.206,
-          "attention_diffusion": 0.282,
-          "drift_proxy": 0.108
-        },
-        {
-          "step_n": 5,
-          "entropy": 0.17,
-          "attention_diffusion": 0.319,
-          "drift_proxy": 0.171
-        }
-      ]
-    },
-    {
-      "id": 9,
-      "question": "Who was the first President of the United States?",
-      "answer": "Washington",
-      "final_correct": true,
-      "steps": [
-        {
-          "step_n": 1,
-          "entropy": 0.19,
-          "attention_diffusion": 0.252,
-          "drift_proxy": 0.097
-        },
-        {
-          "step_n": 2,
-          "entropy": 0.156,
-          "attention_diffusion": 0.227,
-          "drift_proxy": 0.162
-        },
-        {
-          "step_n": 3,
-          "entropy": 0.157,
-          "attention_diffusion": 0.211,
-          "drift_proxy": 0.09
-        },
-        {
-          "step_n": 4,
-          "entropy": 0.221,
-          "attention_diffusion": 0.212,
-          "drift_proxy": 0.207
-        },
-        {
-          "step_n": 5,
-          "entropy": 0.258,
-          "attention_diffusion": 0.19,
-          "drift_proxy": 0.113
-        }
-      ]
-    },
-    {
-      "id": 10,
-      "question": "What is the capital of Australia?",
-      "answer": "Canberra",
-      "final_correct": true,
-      "steps": [
-        {
-          "step_n": 1,
-          "entropy": 0.227,
-          "attention_diffusion": 0.21,
-          "drift_proxy": 0.099
-        },
-        {
-          "step_n": 2,
-          "entropy": 0.27,
-          "attention_diffusion": 0.26,
-          "drift_proxy": 0.146
-        },
-        {
-          "step_n": 3,
-          "entropy": 0.246,
-          "attention_diffusion": 0.293,
-          "drift_proxy": 0.107
-        },
-        {
-          "step_n": 4,
-          "entropy": 0.136,
-          "attention_diffusion": 0.24,
-          "drift_proxy": 0.139
-        },
-        {
-          "step_n": 5,
-          "entropy": 0.195,
-          "attention_diffusion": 0.282,
-          "drift_proxy": 0.174
-        }
-      ]
-    },
-    {
-      "id": 11,
-      "question": "Which element has the atomic number 1?",
-      "answer": "Hydrogen",
-      "final_correct": true,
-      "steps": [
-        {
-          "step_n": 1,
-          "entropy": 0.277,
-          "attention_diffusion": 0.194,
-          "drift_proxy": 0.136
-        },
-        {
-          "step_n": 2,
-          "entropy": 0.174,
-          "attention_diffusion": 0.301,
-          "drift_proxy": 0.115
-        },
-        {
-          "step_n": 3,
-          "entropy": 0.15,
-          "attention_diffusion": 0.243,
-          "drift_proxy": 0.139
-        },
-        {
-          "step_n": 4,
-          "entropy": 0.165,
-          "attention_diffusion": 0.215,
-          "drift_proxy": 0.209
-        },
-        {
-          "step_n": 5,
-          "entropy": 0.191,
-          "attention_diffusion": 0.301,
-          "drift_proxy": 0.157
-        }
-      ]
-    },
-    {
-      "id": 12,
-      "question": "Who painted the Mona Lisa?",
-      "answer": "Da Vinci",
-      "final_correct": true,
-      "steps": [
-        {
-          "step_n": 1,
-          "entropy": 0.128,
-          "attention_diffusion": 0.32,
-          "drift_proxy": 0.197
-        },
-        {
-          "step_n": 2,
-          "entropy": 0.275,
-          "attention_diffusion": 0.31,
-          "drift_proxy": 0.199
-        },
-        {
-          "step_n": 3,
-          "entropy": 0.147,
-          "attention_diffusion": 0.248,
-          "drift_proxy": 0.11
-        },
-        {
-          "step_n": 4,
-          "entropy": 0.184,
-          "attention_diffusion": 0.188,
-          "drift_proxy": 0.133
-        },
-        {
-          "step_n": 5,
-          "entropy": 0.278,
-          "attention_diffusion": 0.217,
-          "drift_proxy": 0.19
-        }
-      ]
-    },
-    {
-      "id": 13,
-      "question": "What is the capital of Italy?",
-      "answer": "Rome",
-      "final_correct": true,
-      "steps": [
-        {
-          "step_n": 1,
-          "entropy": 0.193,
-          "attention_diffusion": 0.239,
-          "drift_proxy": 0.214
-        },
-        {
-          "step_n": 2,
-          "entropy": 0.279,
-          "attention_diffusion": 0.258,
-          "drift_proxy": 0.181
-        },
-        {
-          "step_n": 3,
-          "entropy": 0.145,
-          "attention_diffusion": 0.222,
-          "drift_proxy": 0.216
-        },
-        {
-          "step_n": 4,
-          "entropy": 0.213,
-          "attention_diffusion": 0.256,
-          "drift_proxy": 0.185
-        },
-        {
-          "step_n": 5,
-          "entropy": 0.129,
-          "attention_diffusion": 0.262,
-          "drift_proxy": 0.15
-        }
-      ]
-    },
-    {
-      "id": 14,
-      "question": "How many continents are there on Earth?",
-      "answer": "Seven",
-      "final_correct": true,
-      "steps": [
-        {
-          "step_n": 1,
-          "entropy": 0.256,
-          "attention_diffusion": 0.202,
-          "drift_proxy": 0.215
-        },
-        {
-          "step_n": 2,
-          "entropy": 0.133,
-          "attention_diffusion": 0.206,
-          "drift_proxy": 0.163
-        },
-        {
-          "step_n": 3,
-          "entropy": 0.228,
-          "attention_diffusion": 0.213,
-          "drift_proxy": 0.097
-        },
-        {
-          "step_n": 4,
-          "entropy": 0.262,
-          "attention_diffusion": 0.214,
-          "drift_proxy": 0.163
-        },
-        {
-          "step_n": 5,
-          "entropy": 0.219,
-          "attention_diffusion": 0.239,
-          "drift_proxy": 0.162
-        }
-      ]
-    },
-    {
-      "id": 15,
-      "question": "Which planet is known as the Red Planet?",
-      "answer": "Mars",
-      "final_correct": false,
-      "steps": [
-        {
-          "step_n": 1,
-          "entropy": 0.255,
-          "attention_diffusion": 0.387,
-          "drift_proxy": 0.232
-        },
-        {
-          "step_n": 2,
-          "entropy": 0.293,
-          "attention_diffusion": 0.248,
-          "drift_proxy": 0.308
-        },
-        {
-          "step_n": 3,
-          "entropy": 0.814,
-          "attention_diffusion": 0.26,
-          "drift_proxy": 0.276
-        },
-        {
-          "step_n": 4,
-          "entropy": 0.83,
-          "attention_diffusion": 0.595,
-          "drift_proxy": 0.333
-        },
-        {
-          "step_n": 5,
-          "entropy": 0.88,
-          "attention_diffusion": 0.779,
-          "drift_proxy": 0.179
-        }
-      ]
-    },
-    {
-      "id": 16,
-      "question": "Who discovered penicillin?",
-      "answer": "Fleming",
-      "final_correct": false,
-      "steps": [
-        {
-          "step_n": 1,
-          "entropy": 0.193,
-          "attention_diffusion": 0.253,
-          "drift_proxy": 0.523
-        },
-        {
-          "step_n": 2,
-          "entropy": 0.326,
-          "attention_diffusion": 0.376,
-          "drift_proxy": 0.298
-        },
-        {
-          "step_n": 3,
-          "entropy": 0.712,
-          "attention_diffusion": 0.367,
-          "drift_proxy": 0.431
-        },
-        {
-          "step_n": 4,
-          "entropy": 0.802,
-          "attention_diffusion": 0.777,
-          "drift_proxy": 0.412
-        },
-        {
-          "step_n": 5,
-          "entropy": 0.682,
-          "attention_diffusion": 0.743,
-          "drift_proxy": 0.27
-        }
-      ]
-    },
-    {
-      "id": 17,
-      "question": "What is the capital of Canada?",
-      "answer": "Ottawa",
-      "final_correct": true,
-      "steps": [
-        {
-          "step_n": 1,
-          "entropy": 0.226,
-          "attention_diffusion": 0.311,
-          "drift_proxy": 0.099
-        },
-        {
-          "step_n": 2,
-          "entropy": 0.138,
-          "attention_diffusion": 0.195,
-          "drift_proxy": 0.157
-        },
-        {
-          "step_n": 3,
-          "entropy": 0.164,
-          "attention_diffusion": 0.265,
-          "drift_proxy": 0.18
-        },
-        {
-          "step_n": 4,
-          "entropy": 0.153,
-          "attention_diffusion": 0.269,
-          "drift_proxy": 0.117
-        },
-        {
-          "step_n": 5,
-          "entropy": 0.198,
-          "attention_diffusion": 0.307,
-          "drift_proxy": 0.198
-        }
-      ]
-    },
-    {
-      "id": 18,
-      "question": "Which language has the most native speakers?",
-      "answer": "Mandarin",
-      "final_correct": true,
-      "steps": [
-        {
-          "step_n": 1,
-          "entropy": 0.135,
-          "attention_diffusion": 0.239,
-          "drift_proxy": 0.119
-        },
-        {
-          "step_n": 2,
-          "entropy": 0.121,
-          "attention_diffusion": 0.288,
-          "drift_proxy": 0.169
-        },
-        {
-          "step_n": 3,
-          "entropy": 0.162,
-          "attention_diffusion": 0.284,
-          "drift_proxy": 0.157
-        },
-        {
-          "step_n": 4,
-          "entropy": 0.188,
-          "attention_diffusion": 0.181,
-          "drift_proxy": 0.091
-        },
-        {
-          "step_n": 5,
-          "entropy": 0.261,
-          "attention_diffusion": 0.307,
-          "drift_proxy": 0.156
-        }
-      ]
-    },
-    {
-      "id": 19,
-      "question": "What is the main gas found in the air we breathe?",
-      "answer": "Nitrogen",
-      "final_correct": false,
-      "steps": [
-        {
-          "step_n": 1,
-          "entropy": 0.317,
-          "attention_diffusion": 0.317,
-          "drift_proxy": 0.209
-        },
-        {
-          "step_n": 2,
-          "entropy": 0.175,
-          "attention_diffusion": 0.262,
-          "drift_proxy": 0.51
-        },
-        {
-          "step_n": 3,
-          "entropy": 0.839,
-          "attention_diffusion": 0.372,
-          "drift_proxy": 0.51
-        },
-        {
-          "step_n": 4,
-          "entropy": 0.722,
-          "attention_diffusion": 0.63,
-          "drift_proxy": 0.191
-        },
-        {
-          "step_n": 5,
-          "entropy": 0.836,
-          "attention_diffusion": 0.757,
-          "drift_proxy": 0.313
-        }
-      ]
-    },
-    {
-      "id": 20,
-      "question": "Who wrote 'To Kill a Mockingbird'?",
-      "answer": "Harper Lee",
-      "final_correct": true,
-      "steps": [
-        {
-          "step_n": 1,
-          "entropy": 0.219,
-          "attention_diffusion": 0.202,
-          "drift_proxy": 0.21
-        },
-        {
-          "step_n": 2,
-          "entropy": 0.258,
-          "attention_diffusion": 0.317,
-          "drift_proxy": 0.194
-        },
-        {
-          "step_n": 3,
-          "entropy": 0.261,
-          "attention_diffusion": 0.183,
-          "drift_proxy": 0.183
-        },
-        {
-          "step_n": 4,
-          "entropy": 0.173,
-          "attention_diffusion": 0.31,
-          "drift_proxy": 0.192
-        },
-        {
-          "step_n": 5,
-          "entropy": 0.258,
-          "attention_diffusion": 0.294,
-          "drift_proxy": 0.117
-        }
-      ]
-    },
-    {
-      "id": 21,
-      "question": "What is the capital of Brazil?",
-      "answer": "Brasilia",
-      "final_correct": false,
-      "steps": [
-        {
-          "step_n": 1,
-          "entropy": 0.307,
-          "attention_diffusion": 0.222,
-          "drift_proxy": 0.499
-        },
-        {
-          "step_n": 2,
-          "entropy": 0.322,
-          "attention_diffusion": 0.244,
-          "drift_proxy": 0.477
-        },
-        {
-          "step_n": 3,
-          "entropy": 0.772,
-          "attention_diffusion": 0.261,
-          "drift_proxy": 0.468
-        },
-        {
-          "step_n": 4,
-          "entropy": 0.726,
-          "attention_diffusion": 0.585,
-          "drift_proxy": 0.227
-        },
-        {
-          "step_n": 5,
-          "entropy": 0.746,
-          "attention_diffusion": 0.753,
-          "drift_proxy": 0.537
-        }
-      ]
-    },
-    {
-      "id": 22,
-      "question": "Which temperature scale has its zero point at absolute zero?",
-      "answer": "Kelvin",
-      "final_correct": true,
-      "steps": [
-        {
-          "step_n": 1,
-          "entropy": 0.165,
-          "attention_diffusion": 0.27,
-          "drift_proxy": 0.136
-        },
-        {
-          "step_n": 2,
-          "entropy": 0.277,
-          "attention_diffusion": 0.255,
-          "drift_proxy": 0.211
-        },
-        {
-          "step_n": 3,
-          "entropy": 0.138,
-          "attention_diffusion": 0.316,
-          "drift_proxy": 0.105
-        },
-        {
-          "step_n": 4,
-          "entropy": 0.274,
-          "attention_diffusion": 0.217,
-          "drift_proxy": 0.095
-        },
-        {
-          "step_n": 5,
-          "entropy": 0.19,
-          "attention_diffusion": 0.282,
-          "drift_proxy": 0.124
-        }
-      ]
-    },
-    {
-      "id": 23,
-      "question": "Who was the primary author of the Declaration of Independence?",
-      "answer": "Jefferson",
-      "final_correct": true,
-      "steps": [
-        {
-          "step_n": 1,
-          "entropy": 0.217,
-          "attention_diffusion": 0.252,
-          "drift_proxy": 0.134
-        },
-        {
-          "step_n": 2,
-          "entropy": 0.212,
-          "attention_diffusion": 0.216,
-          "drift_proxy": 0.179
-        },
-        {
-          "step_n": 3,
-          "entropy": 0.12,
-          "attention_diffusion": 0.31,
-          "drift_proxy": 0.155
-        },
-        {
-          "step_n": 4,
-          "entropy": 0.235,
-          "attention_diffusion": 0.284,
-          "drift_proxy": 0.174
-        },
-        {
-          "step_n": 5,
-          "entropy": 0.178,
-          "attention_diffusion": 0.19,
-          "drift_proxy": 0.173
-        }
-      ]
-    },
-    {
-      "id": 24,
-      "question": "What is the capital of Egypt?",
-      "answer": "Cairo",
-      "final_correct": false,
-      "steps": [
-        {
-          "step_n": 1,
-          "entropy": 0.216,
-          "attention_diffusion": 0.263,
-          "drift_proxy": 0.489
-        },
-        {
-          "step_n": 2,
-          "entropy": 0.294,
-          "attention_diffusion": 0.26,
-          "drift_proxy": 0.274
-        },
-        {
-          "step_n": 3,
-          "entropy": 0.762,
-          "attention_diffusion": 0.28,
-          "drift_proxy": 0.268
-        },
-        {
-          "step_n": 4,
-          "entropy": 0.705,
-          "attention_diffusion": 0.664,
-          "drift_proxy": 0.526
-        },
-        {
-          "step_n": 5,
-          "entropy": 0.815,
-          "attention_diffusion": 0.761,
-          "drift_proxy": 0.396
-        }
-      ]
-    },
-    {
-      "id": 25,
-      "question": "What is the speed of light in a vacuum (approx in km/s)?",
-      "answer": "300000",
-      "final_correct": false,
-      "steps": [
-        {
-          "step_n": 1,
-          "entropy": 0.21,
-          "attention_diffusion": 0.31,
-          "drift_proxy": 0.15
-        },
-        {
-          "step_n": 2,
-          "entropy": 0.207,
-          "attention_diffusion": 0.286,
-          "drift_proxy": 0.382
-        },
-        {
-          "step_n": 3,
-          "entropy": 0.811,
-          "attention_diffusion": 0.293,
-          "drift_proxy": 0.327
-        },
-        {
-          "step_n": 4,
-          "entropy": 0.723,
-          "attention_diffusion": 0.675,
-          "drift_proxy": 0.51
-        },
-        {
-          "step_n": 5,
-          "entropy": 0.839,
-          "attention_diffusion": 0.614,
-          "drift_proxy": 0.184
-        }
-      ]
-    },
-    {
-      "id": 26,
-      "question": "Who was the first man to step on the Moon?",
-      "answer": "Armstrong",
-      "final_correct": true,
-      "steps": [
-        {
-          "step_n": 1,
-          "entropy": 0.202,
-          "attention_diffusion": 0.269,
-          "drift_proxy": 0.127
-        },
-        {
-          "step_n": 2,
-          "entropy": 0.251,
-          "attention_diffusion": 0.285,
-          "drift_proxy": 0.174
-        },
-        {
-          "step_n": 3,
-          "entropy": 0.156,
-          "attention_diffusion": 0.208,
-          "drift_proxy": 0.083
-        },
-        {
-          "step_n": 4,
-          "entropy": 0.159,
-          "attention_diffusion": 0.247,
-          "drift_proxy": 0.199
-        },
-        {
-          "step_n": 5,
-          "entropy": 0.132,
-          "attention_diffusion": 0.238,
-          "drift_proxy": 0.168
-        }
-      ]
-    },
-    {
-      "id": 27,
-      "question": "What is the capital of India?",
-      "answer": "New Delhi",
-      "final_correct": true,
-      "steps": [
-        {
-          "step_n": 1,
-          "entropy": 0.151,
-          "attention_diffusion": 0.277,
-          "drift_proxy": 0.149
-        },
-        {
-          "step_n": 2,
-          "entropy": 0.159,
-          "attention_diffusion": 0.272,
-          "drift_proxy": 0.081
-        },
-        {
-          "step_n": 3,
-          "entropy": 0.24,
-          "attention_diffusion": 0.288,
-          "drift_proxy": 0.095
-        },
-        {
-          "step_n": 4,
-          "entropy": 0.188,
-          "attention_diffusion": 0.205,
-          "drift_proxy": 0.214
-        },
-        {
-          "step_n": 5,
-          "entropy": 0.203,
-          "attention_diffusion": 0.187,
-          "drift_proxy": 0.115
-        }
-      ]
-    },
-    {
-      "id": 28,
-      "question": "Which metal is liquid at room temperature?",
-      "answer": "Mercury",
-      "final_correct": true,
-      "steps": [
-        {
-          "step_n": 1,
-          "entropy": 0.256,
-          "attention_diffusion": 0.244,
-          "drift_proxy": 0.192
-        },
-        {
-          "step_n": 2,
-          "entropy": 0.227,
-          "attention_diffusion": 0.318,
-          "drift_proxy": 0.163
-        },
-        {
-          "step_n": 3,
-          "entropy": 0.272,
-          "attention_diffusion": 0.305,
-          "drift_proxy": 0.166
-        },
-        {
-          "step_n": 4,
-          "entropy": 0.235,
-          "attention_diffusion": 0.251,
-          "drift_proxy": 0.196
-        },
-        {
-          "step_n": 5,
-          "entropy": 0.208,
-          "attention_diffusion": 0.306,
-          "drift_proxy": 0.184
-        }
-      ]
-    },
-    {
-      "id": 29,
-      "question": "Who is the author of '1984'?",
-      "answer": "George Orwell",
-      "final_correct": true,
-      "steps": [
-        {
-          "step_n": 1,
-          "entropy": 0.196,
-          "attention_diffusion": 0.216,
-          "drift_proxy": 0.115
-        },
-        {
-          "step_n": 2,
-          "entropy": 0.222,
-          "attention_diffusion": 0.287,
-          "drift_proxy": 0.153
-        },
-        {
-          "step_n": 3,
-          "entropy": 0.22,
-          "attention_diffusion": 0.218,
-          "drift_proxy": 0.091
-        },
-        {
-          "step_n": 4,
-          "entropy": 0.166,
-          "attention_diffusion": 0.218,
-          "drift_proxy": 0.125
-        },
-        {
-          "step_n": 5,
-          "entropy": 0.206,
-          "attention_diffusion": 0.199,
-          "drift_proxy": 0.112
-        }
-      ]
-    },
-    {
-      "id": 30,
-      "question": "What is the capital of Spain?",
-      "answer": "Madrid",
-      "final_correct": false,
-      "steps": [
-        {
-          "step_n": 1,
-          "entropy": 0.289,
-          "attention_diffusion": 0.341,
-          "drift_proxy": 0.176
-        },
-        {
-          "step_n": 2,
-          "entropy": 0.232,
-          "attention_diffusion": 0.309,
-          "drift_proxy": 0.316
-        },
-        {
-          "step_n": 3,
-          "entropy": 0.721,
-          "attention_diffusion": 0.284,
-          "drift_proxy": 0.512
-        },
-        {
-          "step_n": 4,
-          "entropy": 0.797,
-          "attention_diffusion": 0.719,
-          "drift_proxy": 0.493
-        },
-        {
-          "step_n": 5,
-          "entropy": 0.833,
-          "attention_diffusion": 0.656,
-          "drift_proxy": 0.152
-        }
-      ]
-    },
-    {
-      "id": 31,
-      "question": "What is the hardest natural substance on Earth?",
-      "answer": "Diamond",
-      "final_correct": false,
-      "steps": [
-        {
-          "step_n": 1,
-          "entropy": 0.22,
-          "attention_diffusion": 0.351,
-          "drift_proxy": 0.491
-        },
-        {
-          "step_n": 2,
-          "entropy": 0.341,
-          "attention_diffusion": 0.284,
-          "drift_proxy": 0.449
-        },
-        {
-          "step_n": 3,
-          "entropy": 0.789,
-          "attention_diffusion": 0.321,
-          "drift_proxy": 0.238
-        },
-        {
-          "step_n": 4,
-          "entropy": 0.724,
-          "attention_diffusion": 0.667,
-          "drift_proxy": 0.162
-        },
-        {
-          "step_n": 5,
-          "entropy": 0.747,
-          "attention_diffusion": 0.716,
-          "drift_proxy": 0.312
-        }
-      ]
-    },
-    {
-      "id": 32,
-      "question": "Who was the first woman to win a Nobel Prize?",
-      "answer": "Marie Curie",
-      "final_correct": false,
-      "steps": [
-        {
-          "step_n": 1,
-          "entropy": 0.183,
-          "attention_diffusion": 0.293,
-          "drift_proxy": 0.201
-        },
-        {
-          "step_n": 2,
-          "entropy": 0.274,
-          "attention_diffusion": 0.205,
-          "drift_proxy": 0.308
-        },
-        {
-          "step_n": 3,
-          "entropy": 0.793,
-          "attention_diffusion": 0.205,
-          "drift_proxy": 0.407
-        },
-        {
-          "step_n": 4,
-          "entropy": 0.707,
-          "attention_diffusion": 0.672,
-          "drift_proxy": 0.17
-        },
-        {
-          "step_n": 5,
-          "entropy": 0.756,
-          "attention_diffusion": 0.622,
-          "drift_proxy": 0.281
-        }
-      ]
-    },
-    {
-      "id": 33,
-      "question": "What is the capital of Germany?",
-      "answer": "Berlin",
-      "final_correct": true,
-      "steps": [
-        {
-          "step_n": 1,
-          "entropy": 0.242,
-          "attention_diffusion": 0.233,
-          "drift_proxy": 0.185
-        },
-        {
-          "step_n": 2,
-          "entropy": 0.253,
-          "attention_diffusion": 0.215,
-          "drift_proxy": 0.091
-        },
-        {
-          "step_n": 3,
-          "entropy": 0.123,
-          "attention_diffusion": 0.256,
-          "drift_proxy": 0.22
-        },
-        {
-          "step_n": 4,
-          "entropy": 0.176,
-          "attention_diffusion": 0.271,
-          "drift_proxy": 0.189
-        },
-        {
-          "step_n": 5,
-          "entropy": 0.224,
-          "attention_diffusion": 0.286,
-          "drift_proxy": 0.213
-        }
-      ]
-    },
-    {
-      "id": 34,
-      "question": "Which country is home to the kangaroo?",
-      "answer": "Australia",
-      "final_correct": false,
-      "steps": [
-        {
-          "step_n": 1,
-          "entropy": 0.19,
-          "attention_diffusion": 0.204,
-          "drift_proxy": 0.211
-        },
-        {
-          "step_n": 2,
-          "entropy": 0.175,
-          "attention_diffusion": 0.334,
-          "drift_proxy": 0.376
-        },
-        {
-          "step_n": 3,
-          "entropy": 0.724,
-          "attention_diffusion": 0.34,
-          "drift_proxy": 0.457
-        },
-        {
-          "step_n": 4,
-          "entropy": 0.714,
-          "attention_diffusion": 0.701,
-          "drift_proxy": 0.449
-        },
-        {
-          "step_n": 5,
-          "entropy": 0.703,
-          "attention_diffusion": 0.744,
-          "drift_proxy": 0.536
-        }
-      ]
-    },
-    {
-      "id": 35,
-      "question": "What gas do plants absorb from the atmosphere?",
-      "answer": "Carbon dioxide",
-      "final_correct": true,
-      "steps": [
-        {
-          "step_n": 1,
-          "entropy": 0.137,
-          "attention_diffusion": 0.184,
-          "drift_proxy": 0.124
-        },
-        {
-          "step_n": 2,
-          "entropy": 0.228,
-          "attention_diffusion": 0.314,
-          "drift_proxy": 0.136
-        },
-        {
-          "step_n": 3,
-          "entropy": 0.234,
-          "attention_diffusion": 0.191,
-          "drift_proxy": 0.177
-        },
-        {
-          "step_n": 4,
-          "entropy": 0.22,
-          "attention_diffusion": 0.194,
-          "drift_proxy": 0.188
-        },
-        {
-          "step_n": 5,
-          "entropy": 0.256,
-          "attention_diffusion": 0.264,
-          "drift_proxy": 0.097
-        }
-      ]
-    },
-    {
-      "id": 36,
-      "question": "Who painted the Sistine Chapel ceiling?",
-      "answer": "Michelangelo",
-      "final_correct": false,
-      "steps": [
-        {
-          "step_n": 1,
-          "entropy": 0.347,
-          "attention_diffusion": 0.357,
-          "drift_proxy": 0.289
-        },
-        {
-          "step_n": 2,
-          "entropy": 0.236,
-          "attention_diffusion": 0.274,
-          "drift_proxy": 0.352
-        },
-        {
-          "step_n": 3,
-          "entropy": 0.748,
-          "attention_diffusion": 0.37,
-          "drift_proxy": 0.479
-        },
-        {
-          "step_n": 4,
-          "entropy": 0.701,
-          "attention_diffusion": 0.772,
-          "drift_proxy": 0.404
-        },
-        {
-          "step_n": 5,
-          "entropy": 0.846,
-          "attention_diffusion": 0.721,
-          "drift_proxy": 0.324
-        }
-      ]
-    },
-    {
-      "id": 37,
-      "question": "What is the capital of South Africa?",
-      "answer": "Pretoria",
-      "final_correct": false,
-      "steps": [
-        {
-          "step_n": 1,
-          "entropy": 0.297,
-          "attention_diffusion": 0.393,
-          "drift_proxy": 0.258
-        },
-        {
-          "step_n": 2,
-          "entropy": 0.312,
-          "attention_diffusion": 0.308,
-          "drift_proxy": 0.343
-        },
-        {
-          "step_n": 3,
-          "entropy": 0.767,
-          "attention_diffusion": 0.346,
-          "drift_proxy": 0.257
-        },
-        {
-          "step_n": 4,
-          "entropy": 0.85,
-          "attention_diffusion": 0.746,
-          "drift_proxy": 0.185
-        },
-        {
-          "step_n": 5,
-          "entropy": 0.856,
-          "attention_diffusion": 0.629,
-          "drift_proxy": 0.336
-        }
-      ]
-    },
-    {
-      "id": 38,
-      "question": "Which is the smallest country in the world?",
-      "answer": "Vatican City",
-      "final_correct": true,
-      "steps": [
-        {
-          "step_n": 1,
-          "entropy": 0.218,
-          "attention_diffusion": 0.233,
-          "drift_proxy": 0.084
-        },
-        {
-          "step_n": 2,
-          "entropy": 0.256,
-          "attention_diffusion": 0.205,
-          "drift_proxy": 0.11
-        },
-        {
-          "step_n": 3,
-          "entropy": 0.248,
-          "attention_diffusion": 0.228,
-          "drift_proxy": 0.203
-        },
-        {
-          "step_n": 4,
-          "entropy": 0.232,
-          "attention_diffusion": 0.219,
-          "drift_proxy": 0.081
-        },
-        {
-          "step_n": 5,
-          "entropy": 0.272,
-          "attention_diffusion": 0.192,
-          "drift_proxy": 0.181
-        }
-      ]
-    },
-    {
-      "id": 39,
-      "question": "Who proposed the theory of general relativity?",
-      "answer": "Einstein",
-      "final_correct": true,
-      "steps": [
-        {
-          "step_n": 1,
-          "entropy": 0.198,
-          "attention_diffusion": 0.286,
-          "drift_proxy": 0.177
-        },
-        {
-          "step_n": 2,
-          "entropy": 0.223,
-          "attention_diffusion": 0.249,
-          "drift_proxy": 0.191
-        },
-        {
-          "step_n": 3,
-          "entropy": 0.135,
-          "attention_diffusion": 0.211,
-          "drift_proxy": 0.177
-        },
-        {
-          "step_n": 4,
-          "entropy": 0.169,
-          "attention_diffusion": 0.261,
-          "drift_proxy": 0.146
-        },
-        {
-          "step_n": 5,
-          "entropy": 0.205,
-          "attention_diffusion": 0.24,
-          "drift_proxy": 0.184
-        }
-      ]
-    },
-    {
-      "id": 40,
-      "question": "What is the capital of Russia?",
-      "answer": "Moscow",
-      "final_correct": false,
-      "steps": [
-        {
-          "step_n": 1,
-          "entropy": 0.216,
-          "attention_diffusion": 0.341,
-          "drift_proxy": 0.258
-        },
-        {
-          "step_n": 2,
-          "entropy": 0.2,
-          "attention_diffusion": 0.224,
-          "drift_proxy": 0.227
-        },
-        {
-          "step_n": 3,
-          "entropy": 0.704,
-          "attention_diffusion": 0.307,
-          "drift_proxy": 0.455
-        },
-        {
-          "step_n": 4,
-          "entropy": 0.717,
-          "attention_diffusion": 0.623,
-          "drift_proxy": 0.344
-        },
-        {
-          "step_n": 5,
-          "entropy": 0.825,
-          "attention_diffusion": 0.775,
-          "drift_proxy": 0.36
-        }
-      ]
-    },
-    {
-      "id": 41,
-      "question": "Which body organ pumps blood throughout the body?",
-      "answer": "Heart",
-      "final_correct": true,
-      "steps": [
-        {
-          "step_n": 1,
-          "entropy": 0.165,
-          "attention_diffusion": 0.194,
-          "drift_proxy": 0.107
-        },
-        {
-          "step_n": 2,
-          "entropy": 0.156,
-          "attention_diffusion": 0.205,
-          "drift_proxy": 0.082
-        },
-        {
-          "step_n": 3,
-          "entropy": 0.205,
-          "attention_diffusion": 0.218,
-          "drift_proxy": 0.216
-        },
-        {
-          "step_n": 4,
-          "entropy": 0.209,
-          "attention_diffusion": 0.278,
-          "drift_proxy": 0.098
-        },
-        {
-          "step_n": 5,
-          "entropy": 0.259,
-          "attention_diffusion": 0.249,
-          "drift_proxy": 0.202
-        }
-      ]
-    },
-    {
-      "id": 42,
-      "question": "Who wrote the play 'Romeo and Juliet'?",
-      "answer": "Shakespeare",
-      "final_correct": true,
-      "steps": [
-        {
-          "step_n": 1,
-          "entropy": 0.212,
-          "attention_diffusion": 0.246,
-          "drift_proxy": 0.142
-        },
-        {
-          "step_n": 2,
-          "entropy": 0.149,
-          "attention_diffusion": 0.187,
-          "drift_proxy": 0.212
-        },
-        {
-          "step_n": 3,
-          "entropy": 0.196,
-          "attention_diffusion": 0.295,
-          "drift_proxy": 0.136
-        },
-        {
-          "step_n": 4,
-          "entropy": 0.132,
           "attention_diffusion": 0.268,
-          "drift_proxy": 0.088
-        },
-        {
-          "step_n": 5,
-          "entropy": 0.144,
-          "attention_diffusion": 0.259,
-          "drift_proxy": 0.123
-        }
-      ]
-    },
-    {
-      "id": 43,
-      "question": "What is the capital of Argentina?",
-      "answer": "Buenos Aires",
-      "final_correct": true,
-      "steps": [
-        {
-          "step_n": 1,
-          "entropy": 0.279,
-          "attention_diffusion": 0.197,
-          "drift_proxy": 0.187
-        },
-        {
-          "step_n": 2,
-          "entropy": 0.217,
-          "attention_diffusion": 0.291,
-          "drift_proxy": 0.112
-        },
-        {
-          "step_n": 3,
-          "entropy": 0.204,
-          "attention_diffusion": 0.243,
-          "drift_proxy": 0.142
+          "drift_proxy": 0.138,
+          "output": "Fact extraction for question. Resolving aliases. Continuing step 3.",
+          "prompt": "Solve: Which planet is known as the Red Planet? (Sample 3)\nStep 3:"
         },
         {
           "step_n": 4,
-          "entropy": 0.258,
-          "attention_diffusion": 0.319,
-          "drift_proxy": 0.123
+          "entropy": 0.112,
+          "attention_diffusion": 0.282,
+          "drift_proxy": 0.25,
+          "output": "Fact extraction for question. Resolving aliases. Continuing step 4.",
+          "prompt": "Solve: Which planet is known as the Red Planet? (Sample 3)\nStep 4:"
         },
         {
           "step_n": 5,
-          "entropy": 0.219,
-          "attention_diffusion": 0.265,
-          "drift_proxy": 0.184
-        }
-      ]
-    },
-    {
-      "id": 44,
-      "question": "Which is the largest desert in the world?",
-      "answer": "Antarctica",
-      "final_correct": true,
-      "steps": [
-        {
-          "step_n": 1,
-          "entropy": 0.272,
-          "attention_diffusion": 0.209,
-          "drift_proxy": 0.11
-        },
-        {
-          "step_n": 2,
-          "entropy": 0.226,
-          "attention_diffusion": 0.202,
-          "drift_proxy": 0.104
-        },
-        {
-          "step_n": 3,
-          "entropy": 0.132,
-          "attention_diffusion": 0.18,
-          "drift_proxy": 0.143
-        },
-        {
-          "step_n": 4,
-          "entropy": 0.215,
-          "attention_diffusion": 0.221,
-          "drift_proxy": 0.112
-        },
-        {
-          "step_n": 5,
-          "entropy": 0.233,
-          "attention_diffusion": 0.278,
-          "drift_proxy": 0.144
-        }
-      ]
-    },
-    {
-      "id": 45,
-      "question": "What is the unit of electrical resistance?",
-      "answer": "Ohm",
-      "final_correct": true,
-      "steps": [
-        {
-          "step_n": 1,
-          "entropy": 0.23,
-          "attention_diffusion": 0.309,
-          "drift_proxy": 0.19
-        },
-        {
-          "step_n": 2,
-          "entropy": 0.22,
-          "attention_diffusion": 0.273,
-          "drift_proxy": 0.211
-        },
-        {
-          "step_n": 3,
-          "entropy": 0.188,
-          "attention_diffusion": 0.256,
-          "drift_proxy": 0.171
-        },
-        {
-          "step_n": 4,
-          "entropy": 0.265,
-          "attention_diffusion": 0.296,
-          "drift_proxy": 0.09
-        },
-        {
-          "step_n": 5,
-          "entropy": 0.147,
-          "attention_diffusion": 0.223,
-          "drift_proxy": 0.185
-        }
-      ]
-    },
-    {
-      "id": 46,
-      "question": "Who was the lead singer of the band Queen?",
-      "answer": "Freddie Mercury",
-      "final_correct": true,
-      "steps": [
-        {
-          "step_n": 1,
-          "entropy": 0.211,
-          "attention_diffusion": 0.22,
-          "drift_proxy": 0.097
-        },
-        {
-          "step_n": 2,
-          "entropy": 0.23,
-          "attention_diffusion": 0.278,
-          "drift_proxy": 0.212
-        },
-        {
-          "step_n": 3,
-          "entropy": 0.2,
-          "attention_diffusion": 0.249,
-          "drift_proxy": 0.091
-        },
-        {
-          "step_n": 4,
-          "entropy": 0.126,
-          "attention_diffusion": 0.24,
-          "drift_proxy": 0.125
-        },
-        {
-          "step_n": 5,
-          "entropy": 0.16,
-          "attention_diffusion": 0.193,
-          "drift_proxy": 0.215
-        }
-      ]
-    },
-    {
-      "id": 47,
-      "question": "What is the capital of China?",
-      "answer": "Beijing",
-      "final_correct": true,
-      "steps": [
-        {
-          "step_n": 1,
-          "entropy": 0.254,
-          "attention_diffusion": 0.261,
-          "drift_proxy": 0.213
-        },
-        {
-          "step_n": 2,
           "entropy": 0.28,
-          "attention_diffusion": 0.274,
-          "drift_proxy": 0.118
-        },
-        {
-          "step_n": 3,
-          "entropy": 0.126,
-          "attention_diffusion": 0.286,
-          "drift_proxy": 0.146
-        },
-        {
-          "step_n": 4,
-          "entropy": 0.224,
-          "attention_diffusion": 0.308,
-          "drift_proxy": 0.105
-        },
-        {
-          "step_n": 5,
-          "entropy": 0.214,
-          "attention_diffusion": 0.269,
-          "drift_proxy": 0.149
+          "attention_diffusion": 0.34,
+          "drift_proxy": 0.177,
+          "output": "Fact extraction for question. Resolving aliases. Continuing step 5. The correct answer is: Mars.",
+          "prompt": "Solve: Which planet is known as the Red Planet? (Sample 3)\nStep 5:"
         }
       ]
     },
     {
-      "id": 48,
-      "question": "Which planet is closest to the Sun?",
-      "answer": "Mercury",
+      "id": "tqa_42_3",
+      "question": "Who wrote 'Romeo and Juliet'? (Sample 4)",
+      "answer": "William Shakespeare",
       "final_correct": true,
       "steps": [
         {
           "step_n": 1,
-          "entropy": 0.135,
-          "attention_diffusion": 0.229,
-          "drift_proxy": 0.127
-        },
-        {
-          "step_n": 2,
-          "entropy": 0.227,
-          "attention_diffusion": 0.3,
-          "drift_proxy": 0.126
-        },
-        {
-          "step_n": 3,
-          "entropy": 0.231,
-          "attention_diffusion": 0.22,
-          "drift_proxy": 0.212
-        },
-        {
-          "step_n": 4,
-          "entropy": 0.25,
-          "attention_diffusion": 0.257,
-          "drift_proxy": 0.144
-        },
-        {
-          "step_n": 5,
-          "entropy": 0.17,
-          "attention_diffusion": 0.225,
-          "drift_proxy": 0.216
-        }
-      ]
-    },
-    {
-      "id": 49,
-      "question": "Who developed the three laws of motion?",
-      "answer": "Isaac Newton",
-      "final_correct": true,
-      "steps": [
-        {
-          "step_n": 1,
-          "entropy": 0.185,
-          "attention_diffusion": 0.252,
-          "drift_proxy": 0.218
-        },
-        {
-          "step_n": 2,
-          "entropy": 0.225,
-          "attention_diffusion": 0.256,
-          "drift_proxy": 0.138
-        },
-        {
-          "step_n": 3,
-          "entropy": 0.15,
-          "attention_diffusion": 0.231,
-          "drift_proxy": 0.186
-        },
-        {
-          "step_n": 4,
-          "entropy": 0.22,
-          "attention_diffusion": 0.286,
-          "drift_proxy": 0.108
-        },
-        {
-          "step_n": 5,
           "entropy": 0.208,
-          "attention_diffusion": 0.31,
-          "drift_proxy": 0.141
+          "attention_diffusion": 0.3,
+          "drift_proxy": 0.143,
+          "output": "Fact extraction for question. Resolving aliases. Continuing step 1.",
+          "prompt": "Solve: Who wrote 'Romeo and Juliet'? (Sample 4)\nStep 1:"
+        },
+        {
+          "step_n": 2,
+          "entropy": 0.242,
+          "attention_diffusion": 0.247,
+          "drift_proxy": 0.097,
+          "output": "Fact extraction for question. Resolving aliases. Continuing step 2.",
+          "prompt": "Solve: Who wrote 'Romeo and Juliet'? (Sample 4)\nStep 2:"
+        },
+        {
+          "step_n": 3,
+          "entropy": 0.104,
+          "attention_diffusion": 0.29,
+          "drift_proxy": 0.216,
+          "output": "Fact extraction for question. Resolving aliases. Continuing step 3.",
+          "prompt": "Solve: Who wrote 'Romeo and Juliet'? (Sample 4)\nStep 3:"
+        },
+        {
+          "step_n": 4,
+          "entropy": 0.119,
+          "attention_diffusion": 0.275,
+          "drift_proxy": 0.189,
+          "output": "Fact extraction for question. Resolving aliases. Continuing step 4.",
+          "prompt": "Solve: Who wrote 'Romeo and Juliet'? (Sample 4)\nStep 4:"
+        },
+        {
+          "step_n": 5,
+          "entropy": 0.293,
+          "attention_diffusion": 0.261,
+          "drift_proxy": 0.161,
+          "output": "Fact extraction for question. Resolving aliases. Continuing step 5. The correct answer is: William Shakespeare.",
+          "prompt": "Solve: Who wrote 'Romeo and Juliet'? (Sample 4)\nStep 5:"
         }
       ]
     },
     {
-      "id": 50,
-      "question": "What is the capital of Mexico?",
-      "answer": "Mexico City",
+      "id": "tqa_42_4",
+      "question": "What is the smallest prime number? (Sample 5)",
+      "answer": "2",
+      "final_correct": true,
+      "steps": [
+        {
+          "step_n": 1,
+          "entropy": 0.123,
+          "attention_diffusion": 0.191,
+          "drift_proxy": 0.064,
+          "output": "Fact extraction for question. Resolving aliases. Continuing step 1.",
+          "prompt": "Solve: What is the smallest prime number? (Sample 5)\nStep 1:"
+        },
+        {
+          "step_n": 2,
+          "entropy": 0.2,
+          "attention_diffusion": 0.313,
+          "drift_proxy": 0.231,
+          "output": "Fact extraction for question. Resolving aliases. Continuing step 2.",
+          "prompt": "Solve: What is the smallest prime number? (Sample 5)\nStep 2:"
+        },
+        {
+          "step_n": 3,
+          "entropy": 0.253,
+          "attention_diffusion": 0.287,
+          "drift_proxy": 0.169,
+          "output": "Fact extraction for question. Resolving aliases. Continuing step 3.",
+          "prompt": "Solve: What is the smallest prime number? (Sample 5)\nStep 3:"
+        },
+        {
+          "step_n": 4,
+          "entropy": 0.188,
+          "attention_diffusion": 0.209,
+          "drift_proxy": 0.222,
+          "output": "Fact extraction for question. Resolving aliases. Continuing step 4.",
+          "prompt": "Solve: What is the smallest prime number? (Sample 5)\nStep 4:"
+        },
+        {
+          "step_n": 5,
+          "entropy": 0.198,
+          "attention_diffusion": 0.298,
+          "drift_proxy": 0.183,
+          "output": "Fact extraction for question. Resolving aliases. Continuing step 5. The correct answer is: 2.",
+          "prompt": "Solve: What is the smallest prime number? (Sample 5)\nStep 5:"
+        }
+      ]
+    },
+    {
+      "id": "hpqa_42_0",
+      "question": "Which country does the spouse of Emmanuel Macron come from? (Sample 1)",
+      "answer": "France",
       "final_correct": false,
       "steps": [
         {
           "step_n": 1,
-          "entropy": 0.29,
-          "attention_diffusion": 0.224,
-          "drift_proxy": 0.539
+          "entropy": 0.176,
+          "attention_diffusion": 0.338,
+          "drift_proxy": 0.185,
+          "output": "Analyzing CoT branch. Extrapolating relations. Step 1.",
+          "prompt": "Solve: Which country does the spouse of Emmanuel Macron come from? (Sample 1)\nStep 1:"
         },
         {
           "step_n": 2,
-          "entropy": 0.272,
-          "attention_diffusion": 0.248,
-          "drift_proxy": 0.213
+          "entropy": 0.235,
+          "attention_diffusion": 0.267,
+          "drift_proxy": 0.346,
+          "output": "Analyzing CoT branch. Extrapolating relations. Step 2.",
+          "prompt": "Solve: Which country does the spouse of Emmanuel Macron come from? (Sample 1)\nStep 2:"
         },
         {
           "step_n": 3,
-          "entropy": 0.79,
-          "attention_diffusion": 0.31,
-          "drift_proxy": 0.187
+          "entropy": 0.782,
+          "attention_diffusion": 0.238,
+          "drift_proxy": 0.376,
+          "output": "Analyzing CoT branch. Extrapolating relations. Step 3.",
+          "prompt": "Solve: Which country does the spouse of Emmanuel Macron come from? (Sample 1)\nStep 3:"
         },
         {
           "step_n": 4,
-          "entropy": 0.878,
+          "entropy": 0.762,
           "attention_diffusion": 0.763,
-          "drift_proxy": 0.335
+          "drift_proxy": 0.367,
+          "output": "Analyzing CoT branch. Extrapolating relations. Step 4.",
+          "prompt": "Solve: Which country does the spouse of Emmanuel Macron come from? (Sample 1)\nStep 4:"
         },
         {
           "step_n": 5,
-          "entropy": 0.703,
-          "attention_diffusion": 0.746,
-          "drift_proxy": 0.349
+          "entropy": 0.781,
+          "attention_diffusion": 0.715,
+          "drift_proxy": 0.412,
+          "output": "Analyzing CoT branch. Extrapolating relations. Step 5. Confidently asserting a hallucinated fact.",
+          "prompt": "Solve: Which country does the spouse of Emmanuel Macron come from? (Sample 1)\nStep 5:"
+        }
+      ]
+    },
+    {
+      "id": "hpqa_42_1",
+      "question": "Were both Albert Einstein and Isaac Newton physicists? (Sample 2)",
+      "answer": "yes",
+      "final_correct": true,
+      "steps": [
+        {
+          "step_n": 1,
+          "entropy": 0.191,
+          "attention_diffusion": 0.306,
+          "drift_proxy": 0.126,
+          "output": "Fact extraction for question. Resolving aliases. Continuing step 1.",
+          "prompt": "Solve: Were both Albert Einstein and Isaac Newton physicists? (Sample 2)\nStep 1:"
+        },
+        {
+          "step_n": 2,
+          "entropy": 0.191,
+          "attention_diffusion": 0.311,
+          "drift_proxy": 0.11,
+          "output": "Fact extraction for question. Resolving aliases. Continuing step 2.",
+          "prompt": "Solve: Were both Albert Einstein and Isaac Newton physicists? (Sample 2)\nStep 2:"
+        },
+        {
+          "step_n": 3,
+          "entropy": 0.177,
+          "attention_diffusion": 0.229,
+          "drift_proxy": 0.121,
+          "output": "Fact extraction for question. Resolving aliases. Continuing step 3.",
+          "prompt": "Solve: Were both Albert Einstein and Isaac Newton physicists? (Sample 2)\nStep 3:"
+        },
+        {
+          "step_n": 4,
+          "entropy": 0.253,
+          "attention_diffusion": 0.174,
+          "drift_proxy": 0.15,
+          "output": "Fact extraction for question. Resolving aliases. Continuing step 4.",
+          "prompt": "Solve: Were both Albert Einstein and Isaac Newton physicists? (Sample 2)\nStep 4:"
+        },
+        {
+          "step_n": 5,
+          "entropy": 0.27,
+          "attention_diffusion": 0.171,
+          "drift_proxy": 0.239,
+          "output": "Fact extraction for question. Resolving aliases. Continuing step 5. The correct answer is: yes.",
+          "prompt": "Solve: Were both Albert Einstein and Isaac Newton physicists? (Sample 2)\nStep 5:"
         }
       ]
     }

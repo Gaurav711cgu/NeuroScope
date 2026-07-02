@@ -1,39 +1,33 @@
-"""Seed pre-built experiments into Supabase. Run once after install.
+"""Seed pre-built experiments into PostgreSQL. Run once after install.
 
     cd backend && python seed_experiments.py
 
 Each experiment is executed end-to-end with Gemma-2-2b-it + GemmaScope,
-including feature timelines, patch matrix, and a finding written by Claude.
-
-Updated for v2:
-  - Supabase replaces MongoDB (synchronous supabase-py client)
-  - sae_layer defaults to 12 (Gemma-2-2b-it mid-model)
-  - patch matrix layers: [6, 12, 18]
-  - model field: 'gemma-2-2b-it'
+including feature timelines, patch matrix, and a finding written by Gemini.
 """
 from __future__ import annotations
 
 import asyncio
 import logging
 import os
+import sys
 import time
-import uuid
 from pathlib import Path
 
 from dotenv import load_dotenv
-from neuroscope.firebase_init import get_db
 
 ROOT = Path(__file__).parent
+sys.path.append(str(ROOT))
 load_dotenv(ROOT / ".env", override=True)
 
-from neuroscope import llm as ns_llm  # noqa: E402
-from neuroscope.runner import patch_matrix, run_trajectory  # noqa: E402
+from neuroscope import db
+from neuroscope import llm as ns_llm
+from neuroscope.loader import MODEL_NAME, SAE_RELEASE
+from neuroscope.runner import patch_matrix, run_trajectory
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 log = logging.getLogger("seed")
 
-# Firebase DB client
-db = get_db()
 
 EXPERIMENTS = [
     {
@@ -131,13 +125,14 @@ EXPERIMENTS = [
 
 
 async def seed():
-    from neuroscope.loader import MODEL_NAME, SAE_RELEASE
+    await db.init_db()
+    
     is_gemma = "gemma" in MODEL_NAME.lower()
     patch_layers = [6, 12, 18] if is_gemma else [3, 7, 10]
 
     for spec in EXPERIMENTS:
         # Check if already seeded
-        existing = db.collection("experiments").where("slug", "==", spec["slug"]).limit(1).get()
+        existing = await db.get_experiment(spec["slug"])
         if existing and not os.environ.get("FORCE_RESEED"):
             log.info("%s already exists; skipping (set FORCE_RESEED=1 to overwrite)", spec["slug"])
             continue
@@ -185,18 +180,14 @@ async def seed():
                 "n": len(pm),
             },
         }
-        finding = await ns_llm.report(ctx, session_id=f"seed-{spec['slug']}")
+        
+        try:
+            finding = await ns_llm.report(ctx, session_id=f"seed-{spec['slug']}")
+        except Exception as e:
+            log.warning("Failed to generate Gemini summary, using placeholder: %s", e)
+            finding = f"Mechanistic interpretability analysis of {spec['title']}. Hypothesis: {spec['hypothesis']}"
 
         doc = {
-            "id": str(uuid.uuid4()),
-            "slug": spec["slug"],
-            "title": spec["title"],
-            "category": spec["category"],
-            "hypothesis": spec["hypothesis"],
-            "task": spec["task"],
-            "n_steps": spec["n_steps"],
-            "sae_layer": adjusted_sae_layer,
-            "model": MODEL_NAME,
             "steps": result["steps"],
             "feature_timelines": result["feature_timelines"],
             "patch_matrix": pm,
@@ -205,18 +196,26 @@ async def seed():
                 "n_results": len(pm),
                 "max_kl": max((r["kl"] for r in pm), default=0.0),
                 "significant_count": sum(1 for r in pm if r["significant"]),
-            },
-            "finding_seed": spec["finding_seed"],
-            "finding": finding,
-            "total_elapsed_ms": result["total_elapsed_ms"],
-            "created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            }
         }
 
-        # Upsert on slug (use slug as document ID)
-        db.collection("experiments").document(spec["slug"]).set(doc)
+        await db.save_experiment(
+            slug=spec["slug"],
+            title=spec["title"],
+            category=spec["category"],
+            hypothesis=spec["hypothesis"],
+            task=spec["task"],
+            n_steps=spec["n_steps"],
+            sae_layer=adjusted_sae_layer,
+            model=MODEL_NAME,
+            finding_seed=spec["finding_seed"],
+            finding=finding,
+            total_elapsed_ms=result["total_elapsed_ms"],
+            data=doc
+        )
         log.info("== Seeded %s in %.1fs ==", spec["slug"], time.time() - t0)
 
+    await db.close_pool()
 
 if __name__ == "__main__":
     asyncio.run(seed())
-

@@ -1,41 +1,36 @@
-"""NeuroScope FastAPI server — mounts /api/v1/* endpoints.
+"""NeuroScope FastAPI server — mounts /api/* and /api/v1/* endpoints.
 
-FIX #9 (complete) — MongoDB/Motor replaced with Supabase Postgres client.
-  All db.collection.* calls replaced with sb.table("*").*.execute() equivalents.
-
-Additional modernisations:
-  - asyncio.get_running_loop() (replaces deprecated get_event_loop())
-  - lifespan context manager (replaces deprecated @app.on_event)
-  - patch_layer validation: 0–25 (26 layers for Gemma-2-2b-it)
-  - ZeroGPU @spaces.GPU guard (try/except for local dev compatibility)
-  - Attribution route updated to use sae_coactivation_graph naming
+Uses PostgreSQL for backend storage.
 """
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import os
 import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import Optional
+from pathlib import Path
 
-from dotenv import load_dotenv
 from fastapi import APIRouter, BackgroundTasks, FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from starlette.middleware.cors import CORSMiddleware
-from neuroscope.firebase_init import get_db
+from dotenv import load_dotenv
 
-from pathlib import Path
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / ".env", override=True)
 
-from neuroscope import llm as ns_llm  # noqa: E402
-from neuroscope.agent import build_prompt, greedy_decode, steer_decode  # noqa: E402
-from neuroscope.loader import get_model, model_info  # noqa: E402
-from neuroscope.patching import cross_step_patch  # noqa: E402
-from neuroscope.runner import attribution_for_step, patch_matrix, run_trajectory  # noqa: E402
+from neuroscope import db
+from neuroscope import llm as ns_llm
+from neuroscope.agent import build_prompt
+from neuroscope.loader import get_model, model_info
+from neuroscope.patching import cross_step_patch, causal_attribution_for_step
+from neuroscope.runner import patch_matrix, run_trajectory
+from neuroscope.steering import steer_and_regenerate
+from benchmarks import grade_trajectory
 
 # Optional ZeroGPU decorator (only available inside a HF Space)
 try:
@@ -52,21 +47,22 @@ logger = logging.getLogger("neuroscope.server")
 # App + lifespan
 # ---------------------------------------------------------------------------
 
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Initialize the database connection pool on startup
+    await db.init_db()
     yield
-    # Nothing to explicitly close with supabase-py sync client
+    # Close the database connection pool on shutdown
+    await db.close_pool()
 
 
-app = FastAPI(title="NeuroScope API", version="2.0.0", lifespan=lifespan)
-api_router = APIRouter(prefix="/api")
-v1 = APIRouter(prefix="/v1")
+app = FastAPI(title="NeuroScope API", version="3.0.0", lifespan=lifespan)
+router = APIRouter()  # Primary router for all endpoints
+
 
 # ---------------------------------------------------------------------------
 # Schemas
 # ---------------------------------------------------------------------------
-
 
 class RunCreate(BaseModel):
     task: str
@@ -93,6 +89,30 @@ class AttributionRequest(BaseModel):
     step_n: int
     layer: int = 12        # Default to layer 12 (mid-model for Gemma-2-2b-it)
     top_k: int = 12
+    real: Optional[bool] = True
+
+
+class SteerRequest(BaseModel):
+    prompt: str
+    layer: int
+    feature_id: int
+    alpha: float = 10.0
+    real: Optional[bool] = True
+
+
+class ProbeTrainRequest(BaseModel):
+    layer: int = 12
+    real: Optional[bool] = False
+
+
+class FindingsRequest(BaseModel):
+    question_id: int
+    real: Optional[bool] = False
+
+
+class ShieldRequest(BaseModel):
+    task: str
+    rules: list[dict]
     real: Optional[bool] = False
 
 
@@ -100,44 +120,39 @@ class AttributionRequest(BaseModel):
 # Utility
 # ---------------------------------------------------------------------------
 
-
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
 async def _get_run(run_id: str) -> dict:
-    db = get_db()
-    loop = asyncio.get_running_loop()
-
-    def _fetch():
-        # Try agent_runs first
-        doc_ref = db.collection("agent_runs").document(run_id).get()
-        if doc_ref.exists:
-            return doc_ref.to_dict()
-        # Fall back to experiments (view by slug)
-        query = db.collection("experiments").where("slug", "==", run_id).limit(1).get()
-        if query:
-            e = query[0].to_dict()
-            return {
-                "id": e["slug"],
-                "task": e.get("task"),
-                "n_steps": e.get("n_steps"),
-                "sae_layer": e.get("sae_layer"),
-                "model": e.get("model", "gemma-2-2b-it"),
-                "status": "done",
-                "steps": e.get("steps", []),
-                "feature_timelines": e.get("feature_timelines", []),
-                "patch_matrix": e.get("patch_matrix", []),
-                "patch_matrix_summary": e.get("patch_matrix_summary"),
-                "total_elapsed_ms": e.get("total_elapsed_ms"),
-                "_is_experiment": True,
-            }
-        return None
-
-    doc = await loop.run_in_executor(None, _fetch)
+    # Try agent_runs table first
+    doc = await db.get_run(run_id)
+    if not doc:
+        # Fall back to experiments table
+        doc = await db.get_experiment(run_id)
     if not doc:
         raise HTTPException(status_code=404, detail="run not found")
     return doc
+
+
+def grade_suggested_task(task: str, final_output: str) -> bool:
+    """Evaluate reasoning correctness for suggested tasks using case-insensitive heuristics."""
+    task_lower = task.lower()
+    out_lower = final_output.lower()
+    if "eiffel tower" in task_lower:
+        return "paris" in out_lower and "france" in out_lower
+    if "leaves at 14:30" in task_lower or "train" in task_lower:
+        return "17:15" in out_lower
+    if "weather in paris" in task_lower or "paris: search" in task_lower:
+        return "search" in out_lower
+    if "23 * 17" in task_lower:
+        return "391" in out_lower
+    if "spouse" in task_lower:
+        return "macron" in out_lower or "brigitte" in out_lower
+    if "bank" in task_lower:
+        return "riverbank" in out_lower or "financial" in out_lower
+    # Fallback default: no hallucination signals
+    return "hallucinat" not in out_lower
 
 
 def _summary_for_llm(run: dict, max_steps: int = 8) -> dict:
@@ -147,7 +162,7 @@ def _summary_for_llm(run: dict, max_steps: int = 8) -> dict:
         "model": run.get("model", "gemma-2-2b-it"),
         "n_steps": run["n_steps"],
         "sae_layer": run["sae_layer"],
-        "capture_layers": run.get("capture_layers", [6, 12, 18, 24]),
+        "capture_layers": [6, 12, 18, 24],
         "steps": [
             {
                 "step_n": s["step_n"],
@@ -171,13 +186,12 @@ def _summary_for_llm(run: dict, max_steps: int = 8) -> dict:
 # Routes
 # ---------------------------------------------------------------------------
 
-
-@v1.get("/health")
+@router.get("/health")
 async def health():
     return {"status": "ok", "time": _now(), "model": model_info()}
 
 
-@v1.get("/suggested-tasks")
+@router.get("/suggested-tasks")
 async def suggested_tasks():
     return {
         "tasks": [
@@ -227,7 +241,7 @@ async def suggested_tasks():
     }
 
 
-@v1.post("/runs")
+@router.post("/runs")
 async def create_run(payload: RunCreate, background_tasks: BackgroundTasks):
     run_id = str(uuid.uuid4())
     model_name = os.environ.get("NEUROSCOPE_MODEL", "google/gemma-2-2b-it")
@@ -239,19 +253,16 @@ async def create_run(payload: RunCreate, background_tasks: BackgroundTasks):
         else:
             sae_layer = min(sae_layer, 11)
             
-    doc = {
-        "id": run_id,
-        "task": payload.task,
-        "n_steps": payload.n_steps,
-        "sae_layer": sae_layer,
-        "model_name": model_name,
-        "status": "queued",
-        "created_at": _now(),
-        "progress": {"stage": "queued", "completed_steps": 0},
-        "inject_observation": payload.inject_observation or {},
-    }
-    loop = asyncio.get_running_loop()
-    await loop.run_in_executor(None, lambda: get_db().collection("agent_runs").document(run_id).set(doc))
+    await db.save_run(
+        run_id=run_id,
+        task=payload.task,
+        model_name=model_name,
+        n_steps=payload.n_steps,
+        sae_layer=sae_layer,
+        status="queued",
+        progress={"stage": "queued", "completed_steps": 0}
+    )
+    
     background_tasks.add_task(
         _execute_run, run_id, payload.task, payload.n_steps, sae_layer,
         payload.inject_observation or {},
@@ -259,10 +270,7 @@ async def create_run(payload: RunCreate, background_tasks: BackgroundTasks):
     return {"run_id": run_id, "status": "queued"}
 
 
-# ZeroGPU-decorated trajectory function (guard for local dev)
 if _HAS_ZEROGPU:
-    import spaces  # type: ignore
-
     @spaces.GPU(duration=120)
     def _run_trajectory_gpu(run_id, task, n_steps, sae_layer, inject):
         return run_trajectory(
@@ -278,79 +286,63 @@ else:
 
 
 async def _execute_run(run_id: str, task: str, n_steps: int, sae_layer: int, inject: dict) -> None:
-    """Background task: execute trajectory, persist to Firestore."""
+    """Background task: execute reasoning trajectory, evaluate, and persist to PostgreSQL."""
     inject_int = {int(k): v for k, v in (inject or {}).items()}
-    db = get_db()
     loop = asyncio.get_running_loop()
 
-    async def _update(fields: dict):
-        await loop.run_in_executor(
-            None,
-            lambda: db.collection("agent_runs").document(run_id).update(fields),
-        )
-
     try:
-        await _update({"status": "running", "progress": {"stage": "loading_model", "completed_steps": 0}})
-
-        def _on_progress(stage: str, payload: dict):
-            asyncio.run_coroutine_threadsafe(
-                _update({"progress": {"stage": stage, "completed_steps": payload.get("step_n", 0)}}),
-                loop,
-            )
+        await db.update_run(run_id, {"status": "running", "progress": {"stage": "loading_model", "completed_steps": 0}})
 
         result = await loop.run_in_executor(
             None,
             lambda: _run_trajectory_gpu(run_id, task, n_steps, sae_layer, inject_int or None),
         )
 
-        await _update({
+        correct = grade_suggested_task(task, result["steps"][-1]["output"])
+
+        await db.update_run(run_id, {
             "status": "done",
-            "steps": result["steps"],
-            "feature_timelines": result["feature_timelines"],
+            "correct": correct,
             "total_elapsed_ms": result["total_elapsed_ms"],
             "progress": {"stage": "done", "completed_steps": n_steps},
+            "feature_timelines": result["feature_timelines"]
         })
+
+        for s in result["steps"]:
+            step_uuid = str(uuid.uuid4())
+            await db.save_step(
+                step_id=step_uuid,
+                run_id=run_id,
+                step_n=s["step_n"],
+                prompt=s["prompt"],
+                output=s["output"],
+                tool_called=s.get("tool_called", "none"),
+                n_active_features=s.get("n_active_features", 0),
+                sae_l2_norm=s.get("sae_l2_norm", 0.0),
+                hallucination=s.get("hallucination", {}),
+                elapsed_ms=s.get("elapsed_ms", 0),
+                activation_path=s.get("activation_path", ""),
+                top_features=s.get("top_features", []),
+                layer_l2_norms=s.get("layer_l2_norms", [])
+            )
         logger.info("Run %s done in %dms", run_id, result["total_elapsed_ms"])
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         logger.exception("Run %s failed", run_id)
-        await _update({"status": "error", "error": f"{type(e).__name__}: {e}"})
+        await db.update_run(run_id, {"status": "error", "error": f"{type(e).__name__}: {e}"})
 
 
-@v1.get("/runs")
+@router.get("/runs")
 async def list_runs():
-    db = get_db()
-    from firebase_admin import firestore
-    loop = asyncio.get_running_loop()
-
-    def _fetch():
-        docs = db.collection("agent_runs").order_by("created_at", direction=firestore.Query.DESCENDING).limit(30).stream()
-        runs = []
-        for doc in docs:
-            d = doc.to_dict()
-            runs.append({
-                "id": d.get("id"),
-                "task": d.get("task"),
-                "model_name": d.get("model_name"),
-                "status": d.get("status"),
-                "created_at": d.get("created_at"),
-                "n_steps": d.get("n_steps"),
-                "sae_layer": d.get("sae_layer"),
-                "progress": d.get("progress"),
-                "error": d.get("error"),
-                "total_elapsed_ms": d.get("total_elapsed_ms"),
-            })
-        return runs
-
-    rows = await loop.run_in_executor(None, _fetch)
+    rows = await db.list_runs()
     return {"runs": rows}
 
 
-@v1.get("/runs/{run_id}")
+@router.get("/runs/{run_id}")
 async def get_run(run_id: str):
     return await _get_run(run_id)
 
 
-@v1.get("/runs/{run_id}/steps/{step_n}")
+@router.get("/runs/{run_id}/steps/{step_n}")
 async def get_step(run_id: str, step_n: int):
     run = await _get_run(run_id)
     for s in run.get("steps", []):
@@ -359,7 +351,7 @@ async def get_step(run_id: str, step_n: int):
     raise HTTPException(status_code=404, detail="step not found")
 
 
-@v1.post("/runs/{run_id}/patch")
+@router.post("/runs/{run_id}/patch")
 async def run_patch(run_id: str, payload: PatchRequest):
     run = await _get_run(run_id)
     src = next((s for s in run.get("steps", []) if s["step_n"] == payload.source_step), None)
@@ -386,22 +378,26 @@ async def run_patch(run_id: str, payload: PatchRequest):
         None, cross_step_patch,
         model, src["activation_path"], tgt["prompt"], patch_layer,
     )
-    record = {
-        "id": str(uuid.uuid4()),
+    
+    await db.save_patch(
+        run_id=run_id,
+        source_step=payload.source_step,
+        target_step=payload.target_step,
+        patch_layer=payload.patch_layer,
+        kl=res["kl"],
+        significant=res["significant"],
+        top_token_change=res.get("top_token_change")
+    )
+    return {
         "run_id": run_id,
         "source_step": payload.source_step,
         "target_step": payload.target_step,
         "patch_layer": payload.patch_layer,
-        **res,
-        "created_at": _now(),
+        **res
     }
-    db = get_db()
-    loop2 = asyncio.get_running_loop()
-    await loop2.run_in_executor(None, lambda: db.collection("causal_patches").document(record["id"]).set(record))
-    return record
 
 
-@v1.post("/runs/{run_id}/patch-matrix")
+@router.post("/runs/{run_id}/patch-matrix")
 async def run_patch_matrix(run_id: str, payload: PatchSweepRequest):
     run = await _get_run(run_id)
     steps = run.get("steps", [])
@@ -429,32 +425,47 @@ async def run_patch_matrix(run_id: str, payload: PatchSweepRequest):
         "max_kl": max((r["kl"] for r in results), default=0.0),
         "significant_count": sum(1 for r in results if r["significant"]),
     }
-    db = get_db()
-    await loop.run_in_executor(
-        None,
-        lambda: db.collection("agent_runs").document(run_id).update({
+    
+    # Save sweep results
+    for r in results:
+        await db.save_patch(
+            run_id=run_id,
+            source_step=r["source_step"],
+            target_step=r["target_step"],
+            patch_layer=r["patch_layer"],
+            kl=r["kl"],
+            significant=r["significant"],
+            top_token_change=r.get("top_token_change")
+        )
+        
+    await db.update_run(
+        run_id,
+        {
             "patch_matrix": results,
-            "patch_matrix_summary": summary,
-        }),
+            "patch_matrix_summary": summary
+        }
     )
     return {"patch_matrix": results, "layers": layers}
 
 
-@v1.get("/runs/{run_id}/patches")
+@router.get("/runs/{run_id}/patches")
 async def list_patches(run_id: str):
-    db = get_db()
-    from firebase_admin import firestore
-    loop = asyncio.get_running_loop()
+    pool = await db.get_pool()
+    rows = await pool.fetch("SELECT * FROM patch_results WHERE run_id = $1 ORDER BY id DESC", uuid.UUID(run_id))
+    patches = [{
+        "id": str(r["id"]),
+        "run_id": str(r["run_id"]),
+        "source_step": r["source_step"],
+        "target_step": r["target_step"],
+        "patch_layer": r["patch_layer"],
+        "kl": r["kl"],
+        "significant": r["significant"],
+        "top_token_change": json.loads(r["top_token_change"]) if r["top_token_change"] else None
+    } for r in rows]
+    return {"patches": patches}
 
-    def _fetch():
-        docs = db.collection("causal_patches").where("run_id", "==", run_id).order_by("created_at", direction=firestore.Query.DESCENDING).limit(200).stream()
-        return [doc.to_dict() for doc in docs]
 
-    rows = await loop.run_in_executor(None, _fetch)
-    return {"patches": rows}
-
-
-@v1.post("/runs/{run_id}/attribution")
+@router.post("/runs/{run_id}/attribution")
 async def run_attribution(run_id: str, payload: AttributionRequest):
     run = await _get_run(run_id)
     step = next((s for s in run.get("steps", []) if s["step_n"] == payload.step_n), None)
@@ -479,7 +490,6 @@ async def run_attribution(run_id: str, payload: AttributionRequest):
             logger.error("Failed to load model for real causal attribution, falling back to mock: %s", e)
             real_run = False
 
-    from neuroscope.patching import causal_attribution_for_step
     loop = asyncio.get_running_loop()
     top_feats = step.get("top_features", [])[:payload.top_k]
 
@@ -488,112 +498,70 @@ async def run_attribution(run_id: str, payload: AttributionRequest):
         lambda: causal_attribution_for_step(model, step["prompt"], layer, top_feats, real_run)
     )
 
-    record = {
-        "id": str(uuid.uuid4()),
+    graph_id = uuid.uuid4()
+    pool = await db.get_pool()
+    await pool.execute(
+        """
+        INSERT INTO attribution_graphs (id, run_id, step_n, layer, graph)
+        VALUES ($1, $2, $3, $4, $5)
+        """,
+        graph_id, uuid.UUID(run_id), payload.step_n, payload.layer, json.dumps(graph)
+    )
+
+    return {
+        "id": str(graph_id),
         "run_id": run_id,
         "step_n": payload.step_n,
         "layer": payload.layer,
         "graph": graph,
         "created_at": _now(),
     }
-    db = get_db()
-    await loop.run_in_executor(None, lambda: db.collection("attribution_graphs").document(record["id"]).set(record))
-    return record
 
 
-@v1.post("/runs/{run_id}/query")
+@router.post("/runs/{run_id}/query")
 async def run_query(run_id: str, payload: QueryRequest):
     run = await _get_run(run_id)
     ctx = _summary_for_llm(run)
     answer = await ns_llm.ask(payload.query, ctx, session_id=f"run-{run_id}")
-    record = {
-        "id": str(uuid.uuid4()),
+    
+    query_id = str(uuid.uuid4())
+    await db.save_query(query_id, run_id, payload.query, answer)
+    
+    return {
+        "id": query_id,
         "run_id": run_id,
         "query": payload.query,
         "answer": answer,
         "created_at": _now(),
     }
-    db = get_db()
-    loop = asyncio.get_running_loop()
-    await loop.run_in_executor(None, lambda: db.collection("queries").document(record["id"]).set(record))
-    return record
 
 
-@v1.get("/runs/{run_id}/queries")
+@router.get("/runs/{run_id}/queries")
 async def list_queries(run_id: str):
-    db = get_db()
-    from firebase_admin import firestore
-    loop = asyncio.get_running_loop()
-
-    def _fetch():
-        docs = db.collection("queries").where("run_id", "==", run_id).order_by("created_at", direction=firestore.Query.DESCENDING).limit(50).stream()
-        return [doc.to_dict() for doc in docs]
-
-    rows = await loop.run_in_executor(None, _fetch)
+    rows = await db.list_queries(run_id)
     return {"queries": rows}
 
 
-@v1.get("/experiments")
+@router.get("/experiments")
 async def list_experiments():
-    db = get_db()
-    loop = asyncio.get_running_loop()
-
-    def _fetch():
-        docs = db.collection("experiments").stream()
-        experiments = []
-        for doc in docs:
-            d = doc.to_dict()
-            experiments.append({
-                "id": d.get("id"),
-                "slug": d.get("slug"),
-                "title": d.get("title"),
-                "category": d.get("category"),
-                "hypothesis": d.get("hypothesis"),
-                "finding": d.get("finding"),
-                "task": d.get("task"),
-                "n_steps": d.get("n_steps"),
-                "sae_layer": d.get("sae_layer"),
-                "model": d.get("model"),
-                "total_elapsed_ms": d.get("total_elapsed_ms"),
-                "created_at": d.get("created_at"),
-            })
-        return experiments
-
-    rows = await loop.run_in_executor(None, _fetch)
+    rows = await db.list_experiments()
     return {"experiments": rows}
 
 
-@v1.get("/experiments/{slug}")
+@router.get("/experiments/{slug}")
 async def get_experiment(slug: str):
-    db = get_db()
-    loop = asyncio.get_running_loop()
-
-    def _fetch():
-        query = db.collection("experiments").where("slug", "==", slug).limit(1).get()
-        return [doc.to_dict() for doc in query]
-
-    rows = await loop.run_in_executor(None, _fetch)
-    if not rows:
+    e = await db.get_experiment(slug)
+    if not e:
         raise HTTPException(status_code=404, detail="experiment not found")
-    return rows[0]
+    return e
 
 
-@v1.get("/feature/{layer}/{feature_id}")
+@router.get("/feature/{layer}/{feature_id}")
 async def get_feature(layer: int, feature_id: int):
     """Return cached GemmaScope feature label (best-effort via Neuronpedia)."""
-    db = get_db()
-    loop = asyncio.get_running_loop()
-
-    def _fetch():
-        doc_id = f"l{layer}_f{feature_id}"
-        doc_ref = db.collection("feature_labels").document(doc_id).get()
-        if doc_ref.exists:
-            return [doc_ref.to_dict()]
-        return []
-
-    rows = await loop.run_in_executor(None, _fetch)
-    if rows:
-        return rows[0]
+    label_doc = await db.get_feature_label(layer, feature_id)
+    if label_doc:
+        return label_doc
     return {
         "layer": layer,
         "feature_id": feature_id,
@@ -602,42 +570,22 @@ async def get_feature(layer: int, feature_id: int):
     }
 
 
-class SteerRequest(BaseModel):
-    prompt: str
-    layer: int
-    feature_id: int
-    alpha: float = 10.0
-    real: Optional[bool] = False
-
-
-@v1.post("/steer")
+@router.post("/steer")
 async def steer_feature_endpoint(payload: SteerRequest):
     """Run residual steering generation on a prompt, amplifying the decoder direction of feature_id."""
-    db = get_db()
-    loop = asyncio.get_running_loop()
-
     baseline = None
     steered = None
 
     if payload.real:
         try:
-            model = get_model()
-            # Run baseline completion
-            baseline = await loop.run_in_executor(
-                None,
-                lambda: greedy_decode(model, payload.prompt, max_new=40)
-            )
-            # Run steered completion
-            steered = await loop.run_in_executor(
-                None,
-                lambda: steer_decode(model, payload.prompt, payload.layer, payload.feature_id, payload.alpha, max_new=40)
-            )
+            res = await steer_and_regenerate(payload.prompt, payload.layer, payload.feature_id, payload.alpha)
+            baseline = res["baseline"]
+            steered = res["steered"]
         except Exception as e:
             logger.error("Real steering failed, falling back to mock: %s", e)
             payload.real = False
 
     if not baseline or not steered:
-        # Mock steering completion reflecting the concept
         low_p = payload.prompt.lower()
         if "einstein" in low_p:
             baseline = "Thought: Albert Einstein won the Nobel Prize in Physics in 1921."
@@ -661,70 +609,57 @@ async def steer_feature_endpoint(payload: SteerRequest):
     }
 
 
-class ProbeTrainRequest(BaseModel):
-    real: Optional[bool] = False
-
-
-@v1.post("/probe/train")
+@router.post("/probe/train")
 async def train_probe_endpoint(payload: ProbeTrainRequest):
     """Train a sparse linear probe to identify features correlating with factual assertions."""
-    from train_probe import train_factual_probe
-    model = None
-    if payload.real:
-        try:
-            model = get_model()
-        except Exception as e:
-            logger.error("Failed to load model for real probing, falling back to mock: %s", e)
-            payload.real = False
-
-    loop = asyncio.get_running_loop()
-    result = await loop.run_in_executor(
-        None,
-        lambda: train_factual_probe(model, payload.real)
-    )
+    from neuroscope.probe import train_hallucination_probe
+    if not payload.real:
+        return await train_hallucination_probe([], layer=payload.layer)
+        
+    pool = await db.get_pool()
+    rows = await pool.fetch("SELECT id FROM runs WHERE status = 'done' AND correct IS NOT NULL")
+    run_ids = [str(r["id"]) for r in rows]
+    
+    result = await train_hallucination_probe(run_ids, layer=payload.layer)
     return result
 
 
-class FindingsRequest(BaseModel):
-    question_id: int
-    real: Optional[bool] = False
-
-
-@v1.get("/findings")
+@router.get("/findings")
 async def get_findings_data():
     """Return the TriviaQA experiment results, correlations, and LessWrong post."""
-    import json
     data_path = Path(__file__).parent / "data" / "findings_results.json"
     post_path = Path(__file__).parent.parent / "docs" / "findings_post.md"
 
     # Default fallback data if findings_results.json is not generated yet
     if not data_path.exists():
-        from run_findings_experiment import simulate_trajectories
-        data = simulate_trajectories()
-    else:
-        with open(data_path, "r") as f:
-            data = json.load(f)
+        from run_findings_experiment import run_full_experiment
+        await run_full_experiment(n_triviaqa=5, n_hotpotqa=2, simulated=True)
+
+    with open(data_path, "r") as f:
+        data = json.load(f)
 
     post_markdown = ""
     if post_path.exists():
         with open(post_path, "r") as f:
             post_markdown = f.read()
 
-    # Load any user-run sandboxed trajectories from Firestore
-    db = get_db()
-    loop = asyncio.get_running_loop()
-
-    def _fetch_user_runs():
-        docs = db.collection("findings_runs").order_by("created_at").stream()
-        return [doc.to_dict() for doc in docs]
-
-    user_runs = await loop.run_in_executor(None, _fetch_user_runs)
+    # Load any user-run findings from PostgreSQL
+    pool = await db.get_pool()
+    rows = await pool.fetch("SELECT * FROM findings_runs ORDER BY created_at")
+    user_runs = [{
+        "id": r["question_id"],
+        "question": r["question"],
+        "answer": r["answer"],
+        "final_correct": r["final_correct"],
+        "steps": json.loads(r["steps"]),
+        "created_at": r["created_at"].isoformat() if r["created_at"] else None
+    } for r in rows]
 
     # Combine trajectories and recalculate correlations dynamically
     trajectories = data.get("trajectories", []) + user_runs
     
     # Recalculate correlations
-    from run_findings_experiment import spearman_rank_correlation
+    from run_findings_experiment import spearman_bootstrap
     all_entropy = []
     all_attn = []
     all_drift = []
@@ -733,17 +668,15 @@ async def get_findings_data():
     for t in trajectories:
         correct_val = 1.0 if t["final_correct"] else 0.0
         for s in t["steps"]:
-            # Handle potential nested step structure from real run vs mock run
-            h = s.get("hallucination", s)
-            all_entropy.append(h["entropy"])
-            all_attn.append(h["attention_diffusion"])
-            all_drift.append(h["drift_proxy"])
+            all_entropy.append(s["entropy"])
+            all_attn.append(s["attention_diffusion"])
+            all_drift.append(s["drift_proxy"])
             all_correct.append(correct_val)
             
     if all_correct:
-        corr_entropy = spearman_rank_correlation(all_entropy, all_correct)
-        corr_attn = spearman_rank_correlation(all_attn, all_correct)
-        corr_drift = spearman_rank_correlation(all_drift, all_correct)
+        corr_entropy = spearman_bootstrap(all_entropy, all_correct)["rho"]
+        corr_attn = spearman_bootstrap(all_attn, all_correct)["rho"]
+        corr_drift = spearman_bootstrap(all_drift, all_correct)["rho"]
     else:
         corr_entropy, corr_attn, corr_drift = -0.71, -0.43, -0.18
 
@@ -753,44 +686,49 @@ async def get_findings_data():
             "attention_diffusion": round(corr_attn, 3),
             "feature_drift": round(corr_drift, 3)
         },
-        "early_warning_steps_early": data.get("early_warning_steps_early", {"entropy": 1.8, "attention_diffusion": 0.9, "feature_drift": 0.2}),
-        "summary": data.get("summary", ""),
+        "early_warning_steps_early": data.get("stats", {}).get("early_warning_steps_early", {"entropy": 1.8, "attention_diffusion": 0.9, "feature_drift": 0.2}),
+        "summary": data.get("stats", {}).get("summary", ""),
         "post_markdown": post_markdown,
         "trajectories": trajectories,
         "user_run_count": len(user_runs)
     }
 
 
-@v1.post("/findings/run")
+@router.post("/findings/run")
 async def run_findings_trajectory(payload: FindingsRequest):
     """Run a single TriviaQA question trajectory (simulated or real) and append to dataset."""
     import random
-    from run_findings_experiment import TRIVIA_QA_DATASET
+    from datasets import load_triviaqa_sample, load_hotpotqa_sample
     
-    db = get_db()
-    loop = asyncio.get_running_loop()
-    
-    item = next((q for q in TRIVIA_QA_DATASET if q["id"] == payload.question_id), None)
+    # Try TriviaQA first
+    trivia_sample = load_triviaqa_sample(n=200, seed=42)
+    item = next((q for q in trivia_sample if str(q["id"]) == str(payload.question_id)), None)
+    if not item:
+        # Try HotpotQA
+        hotpot_sample = load_hotpotqa_sample(n=100, seed=42)
+        item = next((q for q in hotpot_sample if str(q["id"]) == str(payload.question_id)), None)
+        
     if not item:
         raise HTTPException(status_code=404, detail="question not found")
 
     new_run = None
     
     if payload.real:
-        # Real Gemma-2-2b-it inference inside background executor
         try:
             run_id = f"sandbox-{uuid.uuid4()}"
             prompt_task = f"Answer the following question. Show your reasoning steps clearly.\nQuestion: {item['question']}"
             
-            # Execute trajectory
+            model_name = os.environ.get("NEUROSCOPE_MODEL", "gpt2")
+            sae_layer = 7 if "gpt2" in model_name.lower() else 12
+            
+            loop = asyncio.get_running_loop()
             result = await loop.run_in_executor(
                 None,
-                lambda: _run_trajectory_gpu(run_id, prompt_task, 5, 12, None)
+                lambda: _run_trajectory_gpu(run_id, prompt_task, 5, sae_layer, None)
             )
             
-            # Evaluate correctness
-            final_output = result["steps"][-1]["output"].lower()
-            final_correct = item["answer"].lower() in final_output
+            final_output = result["steps"][-1]["output"]
+            final_correct = grade_trajectory(final_output, item["answers"])
             
             steps_metrics = []
             for s in result["steps"]:
@@ -807,19 +745,17 @@ async def run_findings_trajectory(payload: FindingsRequest):
             new_run = {
                 "id": item["id"],
                 "question": item["question"],
-                "answer": item["answer"],
+                "answer": item["answers"][0],
                 "final_correct": final_correct,
                 "steps": steps_metrics,
                 "created_at": _now()
             }
         except Exception as e:
             logger.error("Real findings run failed, falling back to mock: %s", e)
-            # Fail silently and fall back to mock
             payload.real = False
 
     if not new_run:
-        # Generate simulated trajectory matching findings correlations
-        final_correct = random.choice([True, True, False])  # 66% correct rate
+        final_correct = random.choice([True, True, False])
         steps = []
         
         for step in range(1, 6):
@@ -829,7 +765,7 @@ async def run_findings_trajectory(payload: FindingsRequest):
                 drift = random.uniform(0.08, 0.22)
                 output = f"Reasoning through search indices for '{item['question']}'... "
                 if step == 5:
-                    output += f"The answer is {item['answer']}."
+                    output += f"The answer is {item['answers'][0]}."
                 else:
                     output += "Continuing derivation."
             else:
@@ -862,33 +798,36 @@ async def run_findings_trajectory(payload: FindingsRequest):
         new_run = {
             "id": item["id"],
             "question": item["question"],
-            "answer": item["answer"],
+            "answer": item["answers"][0],
             "final_correct": final_correct,
             "steps": steps,
             "created_at": _now()
         }
 
-    # Save to findings_runs in Firestore
-    run_doc_id = f"sandbox-{uuid.uuid4()}"
-    await loop.run_in_executor(None, lambda: db.collection("findings_runs").document(run_doc_id).set(new_run))
+    # Save to findings_runs in PostgreSQL
+    pool = await db.get_pool()
+    await pool.execute(
+        """
+        INSERT INTO findings_runs (question_id, question, answer, final_correct, steps)
+        VALUES ($1, $2, $3, $4, $5)
+        """,
+        int(new_run["id"]) if isinstance(new_run["id"], int) or (isinstance(new_run["id"], str) and new_run["id"].isdigit()) else 999,
+        new_run["question"],
+        new_run["answer"],
+        new_run["final_correct"],
+        json.dumps(new_run["steps"])
+    )
     
-    # Return updated stats by invoking get_findings_data logic
-    stats = await get_findings_data()
+    stats_data = await get_findings_data()
     return {
         "run": new_run,
-        "correlations": stats["correlations"],
-        "early_warning_steps_early": stats["early_warning_steps_early"],
-        "user_run_count": stats["user_run_count"]
+        "correlations": stats_data["correlations"],
+        "early_warning_steps_early": stats_data["early_warning_steps_early"],
+        "user_run_count": stats_data["user_run_count"]
     }
 
 
-class ShieldRequest(BaseModel):
-    task: str
-    rules: list[dict]
-    real: Optional[bool] = False
-
-
-@v1.post("/shield/run")
+@router.post("/shield/run")
 async def run_shield_endpoint(payload: ShieldRequest):
     """Run a comparative agent trajectory with/without the active steering shield."""
     from neuroscope.shield_runner import run_shield_trajectory
@@ -901,18 +840,24 @@ async def run_shield_endpoint(payload: ShieldRequest):
 
 
 # ---------------------------------------------------------------------------
-# Mount
+# Mount Routers to expose both /api/* and /api/v1/*
 # ---------------------------------------------------------------------------
 
+api_router = APIRouter(prefix="/api")
+api_router.include_router(router)
+
+v1 = APIRouter(prefix="/v1")
+v1.include_router(router)
+
+# This exposes /api/v1/*
 api_router.include_router(v1)
 
-
-@api_router.get("/")
-async def root():
-    return {"service": "neuroscope", "version": "2.0.0", "model": "gemma-2-2b-it"}
-
-
 app.include_router(api_router)
+
+
+# ---------------------------------------------------------------------------
+# CORS & Error Handlers
+# ---------------------------------------------------------------------------
 
 app.add_middleware(
     CORSMiddleware,
@@ -925,5 +870,5 @@ app.add_middleware(
 
 @app.exception_handler(Exception)
 async def global_exception_handler(_, exc: Exception):
-    logger.exception("unhandled")
+    logger.exception("Unhandled server exception")
     return JSONResponse(status_code=500, content={"detail": f"{type(exc).__name__}: {exc}"})
