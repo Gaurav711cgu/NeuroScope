@@ -39,7 +39,7 @@ async def verify_all():
             table_names = [t["table_name"] for t in tables]
             print(f"   Found tables: {table_names}")
             
-            required_tables = ["runs", "steps", "step_features", "patch_results", "queries", "experiments", "feature_labels", "attribution_graphs", "findings_runs"]
+            required_tables = ["runs", "steps", "step_features", "patch_results", "queries", "experiments", "feature_labels", "attribution_graphs", "findings_runs", "outbox"]
             missing_tables = [t for t in required_tables if t not in table_names]
             assert not missing_tables, f"Missing tables: {missing_tables}"
             
