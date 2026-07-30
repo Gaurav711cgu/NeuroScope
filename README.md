@@ -150,8 +150,8 @@ NeuroScope v3 uses a **dual-store persistence architecture** designed to handle 
 |---|---|---|---|
 | `POST` | `/api/v1/interpret/trajectory` | Execute model inference with real-time SAE telemetry tracking | **Bearer Token** |
 | `POST` | `/api/v1/steer/inject` | Apply forward-hook vector steering to Layer 12 residual stream | **Bearer Token** |
-| `GET` | `/api/v1/metrics/circuit` | Retrieve Wang et al. (2022) IOI circuit faithfulness benchmark | **Public** (Unauthenticated) |
-| `GET` | `/api/v1/health/deep` | System health check (PostgreSQL pool, PyTorch device, GPU VRAM) | **Public** (Unauthenticated) |
+| `GET` | `/api/v1/metrics/circuit` | Retrieve Wang et al. (2022) IOI circuit faithfulness benchmark | **Bearer Token** |
+| `GET` | `/api/v1/health/deep` | System health check (PostgreSQL pool, PyTorch device, GPU VRAM) | **Bearer Token** |
 
 <details>
 <summary><b>POST /api/v1/interpret/trajectory — Request & Response Payload Example</b></summary>
