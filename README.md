@@ -18,6 +18,9 @@
 
 [Live API Docs](#api-documentation) &nbsp;·&nbsp; [System Architecture](#system-architecture) &nbsp;·&nbsp; [Research Benchmarks](#production-system-benchmarks) &nbsp;·&nbsp; [Run Tests](#testing--verification)
 
+<br/><br/>
+<img src="assets/dashboard.png" alt="NeuroScope Real-Time Telemetry Dashboard" width="100%" />
+
 </div>
 
 ---
