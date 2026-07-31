@@ -74,33 +74,16 @@
 
 ## System Architecture
 
-```
-                       Inference / Prompt Request
-                                   │
-                                   ▼
-                   ┌───────────────────────────────┐
-                   │  Layer 1: FastAPI API Gateway │  Nginx / CORS Middleware
-                   │  JWT Auth & Rate Limiter      │  SlowAPI per-IP limits
-                   └───────────────┬───────────────┘
-                                   │
-                                   ▼
-                   ┌───────────────────────────────┐
-                   │  Layer 2: Model Inference Engine│ TransformerLens / PyTorch
-                   │  Forward Hook Steering Vector │ Layer-12 Activation Hook
-                   └───────┬───────────────┬───────┘
-                           │               │
-             ┌─────────────┘               └─────────────┐
-             ▼                                           ▼
-┌───────────────────────────────┐         ┌───────────────────────────────┐
-│ Layer 3: SAE Feature Encoder  │         │ Layer 4: Linear Probe & Guard │
-│ GemmaScope 16k JumpReLU SAE   │         │ Early Warning Drift Detector  │
-└────────────┬──────────────────┘         └──────────────┬────────────────┘
-             │                                           │
-             ▼                                           ▼
-┌───────────────────────────────┐         ┌───────────────────────────────┐
-│ Layer 5: Top-K Sparse Encoder │         │ Layer 6: Async Outbox Worker  │
-│ float16 .npz Compression      │         │ asyncpg PostgreSQL Writer     │
-└───────────────────────────────┘         └───────────────────────────────┘
+```mermaid
+graph TD
+    Client["Client Inference Request"] -->|"HTTP / REST API"| Gateway["FastAPI API Gateway"]
+    Gateway -->|"Verify JWT & Rate Limit"| Engine["Model Inference Engine"]
+    Engine -->|"Forward Hook Activation Injection"| Steering["Layer-12 Activation Steering"]
+    Engine -->|"Residual Stream Capture"| Encoder["SAE Feature Encoder"]
+    Engine -->|"Hidden State Extraction"| Probe["Linear Hallucination Probe"]
+    Encoder -->|"Top-K Sparse Extraction"| Sparse["Sparse float16 NPZ Encoder"]
+    Probe -->|"Audit Event Payload"| Worker["Async Outbox Queue Worker"]
+    Worker -->|"Non-Blocking Write"| DB["PostgreSQL Database"]
 ```
 
 ---
