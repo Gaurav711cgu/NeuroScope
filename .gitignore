@@ -31,12 +31,20 @@ dist/
 dist
 
 # Environment files (comprehensive coverage)
-
 *token.json*
 *credentials.json*
 .env
+.env.*
+!.env.template
+!.env.example
+*service-account*.json
+!*service-account*.json.example
 firebase-service-account.json
 backend/data/
+data/
+scratch/
+
+
 
 # Logs and debug files
 npm-debug.log*

@@ -1,0 +1,3 @@
+"""
+NeuroScope Visualization Module Initialization.
+"""

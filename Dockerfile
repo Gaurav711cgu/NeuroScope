@@ -1,27 +1,46 @@
-FROM python:3.11-slim
+# ─── Multi-Stage Production Dockerfile for NeuroScope v3 ────────────────────
 
-WORKDIR /app
+# Stage 1: Build Dependencies
+FROM python:3.11-slim AS builder
 
-# System dependencies
-RUN apt-get update && apt-get install -y \
+WORKDIR /build
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
     git \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
 COPY backend/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
-# Copy backend source
-COPY backend/ ./backend/
-
-# HF Spaces requires port 7860
-ENV PORT=7860
-ENV PYTHONPATH=/app/backend
-
-# Model weights are loaded and cached dynamically at runtime to keep builds fast and stable.
+# Stage 2: Runtime Image
+FROM python:3.11-slim AS runner
 
 WORKDIR /app/backend
 
-# Run the FastAPI server
-CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "7860", "--workers", "1"]
+# Create non-root system user for security
+RUN groupadd -g 10001 neuroscope && \
+    useradd -u 10001 -g neuroscope -s /bin/bash -m neuroscope
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /install /usr/local
+COPY backend/ /app/backend/
+
+ENV PYTHONPATH=/app/backend
+ENV PORT=8000
+ENV PYTHONUNBUFFERED=1
+
+RUN chown -R neuroscope:neuroscope /app
+USER neuroscope
+
+EXPOSE 8000
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+  CMD curl -f http://localhost:8000/api/health || exit 1
+
+CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8000"]

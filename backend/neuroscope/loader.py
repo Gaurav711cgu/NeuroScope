@@ -84,12 +84,25 @@ def get_sae(layer: int = DEFAULT_SAE_LAYER):
             device="cpu",
         )
         sae.eval()
+        
+        # Verify dimension contract between Model and SAE
+        if state.model is not None:
+            model_dim = state.model.cfg.d_model
+            sae_dim = sae.cfg.d_in
+            if model_dim != sae_dim:
+                raise ValueError(
+                    f"Dimension mismatch between Model '{state.MODEL_NAME}' (d_model={model_dim}) "
+                    f"and SAE '{state.SAE_RELEASE}' layer {layer} (d_in={sae_dim}). "
+                    "Cannot project mismatched hidden states."
+                )
+
         state.sae_cache[key] = (sae, cfg)
         logger.info(
             "Loaded GemmaScope layer %d: d_in=%d d_sae=%d",
             layer, sae.cfg.d_in, sae.cfg.d_sae,
         )
         return state.sae_cache[key]
+
 
 
 def model_info() -> dict:
