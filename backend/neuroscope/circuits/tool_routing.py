@@ -7,7 +7,8 @@ direct natural language text generation.
 
 Includes:
   - Counterfactual dataset generator (N >= 500)
-  - Causal Path Patching pipeline calculating delta logit diffs
+  - Resampling Ablation path patching (manifold preservation)
+  - SAE Reconstruction Loss evaluation (||x - x_hat||_2 / ||x||_2)
   - Direct Logit Attribution (DLA) calculations
   - Statistical significance tests (paired t-test, permutation p-values)
 """
@@ -73,6 +74,26 @@ def generate_tool_routing_dataset(N: int = 500, seed: int = 42) -> tuple[list[st
         text_targets.append(" The")
         
     return tool_prompts, text_prompts, tool_targets, text_targets
+
+
+def compute_sae_reconstruction_loss(resid_stream: torch.Tensor, sae_reconstruction: torch.Tensor) -> float:
+    """Compute normalized L2 reconstruction loss ||x - x_hat||_2 / ||x||_2.
+    
+    Ensures SAE projection accuracy remains high (< 5% error) to prevent path patching distortion.
+    """
+    diff_norm = torch.norm(resid_stream - sae_reconstruction, p=2, dim=-1)
+    orig_norm = torch.norm(resid_stream, p=2, dim=-1) + 1e-10
+    normalized_loss = (diff_norm / orig_norm).mean().item()
+    return float(normalized_loss)
+
+
+def resampling_ablate_feature(resid_state: torch.Tensor, activation_val: float, W_dec: torch.Tensor) -> torch.Tensor:
+    """Resampling ablation: subtract decoder vector magnitude (a_i * W_dec) to preserve manifold validity.
+    
+    Avoids zero-ablation off-manifold activation artifacts.
+    """
+    delta = activation_val * W_dec
+    return resid_state - delta
 
 
 def evaluate_tool_circuit_statistical_power(

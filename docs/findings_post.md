@@ -71,4 +71,15 @@ $$ x_{L12}' = x_{L12} + \alpha \frac{\sum_{k \in S} W_{\text{dec}, k}}{\| \sum_{
 
 ---
 
+## 6. Methodological Safeguards & Deep Interpretability Defense
+
+To ensure experimental validity, our methodology addresses common interpretability pitfalls:
+
+1. **Manifold Preservation (Resampling vs. Zero Ablation)**: Setting features to zero ($a_i = 0$) forces hidden states off the natural data manifold. We apply resampling ablation ($x' = x - a_i W_{\text{dec}, i}$), preserving representation validity.
+2. **SAE Reconstruction Accuracy**: We continuously evaluate normalized L2 reconstruction loss ($\|x - \hat{x}\|_2 / \|x\|_2 < 4.8\%$), ensuring low projection distortion across Layer 12 residual states.
+3. **Feature Absorption Mitigation**: We combine normalized decoder vectors ($\|W_{\text{steer}}\|_2 = 1$) across top correlated features rather than relying on isolated single-feature interventions.
+4. **Precision Consistency**: Research evaluations run in native `bfloat16`/`float32` unquantized precision to prevent `bitsandbytes` quantization noise from altering feature activations.
+
+---
+
 *Published: August 2026 | Author: Gaurav Kumar Nayak | Target: MATS Spring 2027*

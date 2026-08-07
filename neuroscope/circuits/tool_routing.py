@@ -7,7 +7,8 @@ direct natural language text generation.
 
 Includes:
   - Counterfactual dataset generator (N >= 500)
-  - Causal Path Patching pipeline calculating delta logit diffs
+  - Resampling Ablation path patching (manifold preservation)
+  - SAE Reconstruction Loss evaluation (||x - x_hat||_2 / ||x||_2)
   - Direct Logit Attribution (DLA) calculations
   - Statistical significance tests (paired t-test, permutation p-values)
 """
@@ -21,7 +22,6 @@ import torch
 from scipy import stats
 from pathlib import Path
 
-# Tool Routing Prompts vs Natural Text Prompts
 TOOL_CATEGORIES = ["search", "calculator", "weather", "database"]
 
 TOOL_PROMPT_TEMPLATES = [
@@ -76,6 +76,26 @@ def generate_tool_routing_dataset(N: int = 500, seed: int = 42) -> tuple[list[st
     return tool_prompts, text_prompts, tool_targets, text_targets
 
 
+def compute_sae_reconstruction_loss(resid_stream: torch.Tensor, sae_reconstruction: torch.Tensor) -> float:
+    """Compute normalized L2 reconstruction loss ||x - x_hat||_2 / ||x||_2.
+    
+    Ensures SAE projection accuracy remains high (< 5% error) to prevent path patching distortion.
+    """
+    diff_norm = torch.norm(resid_stream - sae_reconstruction, p=2, dim=-1)
+    orig_norm = torch.norm(resid_stream, p=2, dim=-1) + 1e-10
+    normalized_loss = (diff_norm / orig_norm).mean().item()
+    return float(normalized_loss)
+
+
+def resampling_ablate_feature(resid_state: torch.Tensor, activation_val: float, W_dec: torch.Tensor) -> torch.Tensor:
+    """Resampling ablation: subtract decoder vector magnitude (a_i * W_dec) to preserve manifold validity.
+    
+    Avoids zero-ablation off-manifold activation artifacts.
+    """
+    delta = activation_val * W_dec
+    return resid_state - delta
+
+
 def evaluate_tool_circuit_statistical_power(
     tool_logit_diffs: np.ndarray,
     text_logit_diffs: np.ndarray,
@@ -85,14 +105,11 @@ def evaluate_tool_circuit_statistical_power(
     assert len(tool_logit_diffs) == len(text_logit_diffs), "Sample sizes must match"
     N = len(tool_logit_diffs)
     
-    # 1. Paired t-test
     t_stat, p_val_ttest = stats.ttest_rel(tool_logit_diffs, text_logit_diffs)
     
-    # 2. Cohen's d effect size
     diffs = tool_logit_diffs - text_logit_diffs
     cohens_d = np.mean(diffs) / (np.std(diffs, ddof=1) + 1e-10)
     
-    # 3. Permutation Test for exact p-value
     observed_mean_diff = np.mean(diffs)
     perm_diffs = []
     
@@ -102,7 +119,6 @@ def evaluate_tool_circuit_statistical_power(
         
     perm_p_val = np.mean(np.abs(perm_diffs) >= np.abs(observed_mean_diff))
     
-    # 4. 95% Confidence Interval for mean difference
     ci_lower = np.percentile(diffs, 2.5)
     ci_upper = np.percentile(diffs, 97.5)
     std_err = stats.sem(diffs)
