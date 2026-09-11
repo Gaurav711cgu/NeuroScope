@@ -131,7 +131,9 @@ def plot_circuit_diagram(causal_features: list[dict], output_path: str):
     
     n = len(causal_features)
     xs = np.linspace(0.1, 0.9, min(n, 10))
-    ys = np.random.uniform(0.2, 0.8, len(xs))
+    rng = np.random.RandomState(42)
+    ys = rng.uniform(0.2, 0.8, len(xs))
+
     
     max_delta = max(f["entropy_delta"] for f in causal_features[:len(xs)]) or 1.0
     

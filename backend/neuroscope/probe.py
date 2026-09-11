@@ -136,27 +136,23 @@ async def train_hallucination_probe(
                 logger.error("Failed to load activations for step in run %s: %s", run_id, e)
 
     if len(X) < 5:
-        logger.warning("Not enough samples (%d) to train a real probe, returning mock stats.", len(X))
-        mock_features = [
-            {"dimension": 1402, "weight": 2.45, "direction": "hallucination", "hazard_ratio": 11.58},
-            {"dimension": 804, "weight": 1.98, "direction": "hallucination", "hazard_ratio": 7.24},
-            {"dimension": 5291, "weight": -2.31, "direction": "factual", "hazard_ratio": 0.10},
-            {"dimension": 9182, "weight": -1.82, "direction": "factual", "hazard_ratio": 0.16}
-        ]
+        logger.warning("Not enough samples (%d) to train a probe (minimum 5 required).", len(X))
         return {
             "layer": layer,
             "n_samples": len(X),
-            "cv_auc_mean": 0.938,
-            "cv_auc_std": 0.018,
-            "probe_accuracy": 0.895,
-            "top_predictive_dims": [1402, 804, 5291, 9182],
-            "features": mock_features,
+            "cv_auc_mean": None,
+            "cv_auc_std": None,
+            "probe_accuracy": None,
+            "top_predictive_dims": [],
+            "features": [],
             "survival_analysis": {
-                "times": [0, 1, 2, 3],
-                "survival_probabilities": [1.0, 0.92, 0.85, 0.78]
+                "times": [],
+                "survival_probabilities": []
             },
-            "real": False
+            "real": False,
+            "error": f"Insufficient activation samples ({len(X)}/5 required) to train probe."
         }
+
 
     X = np.array(X)
     y = np.array(y)
