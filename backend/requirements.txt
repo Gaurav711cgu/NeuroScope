@@ -19,8 +19,8 @@ numpy>=1.26.0
 transformer_lens>=1.19.0
 sae_lens>=3.22.0
 
-# LLM Explainer — Groq
-groq>=0.9.0
+# LLM Explainer — Google Gemini
+google-genai>=0.1.0
 
 # Utilities
 requests>=2.31.0

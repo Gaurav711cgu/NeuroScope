@@ -302,11 +302,12 @@ print("\n[7/9] Asking Groq to explain the trajectory...")
 t0 = time.time()
 
 try:
-    from groq import Groq
+    from google import genai
+    from google.genai import types
 
-    GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
-    if not GROQ_API_KEY:
-        raise ValueError("GROQ_API_KEY env var is not set")
+    GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY") or os.environ.get("ANTHROPIC_API_KEY")
+    if not GEMINI_API_KEY:
+        raise ValueError("Neither GEMINI_API_KEY nor ANTHROPIC_API_KEY env var is set")
 
     summary = {
         "task": TASK,
@@ -335,7 +336,7 @@ try:
         "features, and layers. Be technically precise. Acknowledge uncertainty."
     )
 
-    client = Groq(api_key=GROQ_API_KEY)
+    client = genai.Client(api_key=GEMINI_API_KEY)
     prompt = (
         f"Trajectory data:\n{json.dumps(summary, indent=2)}\n\n"
         "Question: Looking at the cross-step patch result and drift scores, "
@@ -343,15 +344,15 @@ try:
         "What does the hallucination timeline suggest?"
     )
     
-    response = client.chat.completions.create(
-        model="llama3-70b-8192",
-        messages=[
-            {"role": "system", "content": system_msg},
-            {"role": "user", "content": prompt}
-        ],
-        max_tokens=512,
+    response = client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            system_instruction=system_msg,
+            max_output_tokens=512,
+        )
     )
-    answer = response.choices[0].message.content
+    answer = response.text
     print(f"      LLM responded ({time.time()-t0:.1f}s):")
     print("      " + "\n      ".join(answer.split("\n")))
 except Exception as e:
