@@ -61,7 +61,7 @@ jobs:
           NEUROSCOPE_MODEL: gpt2
           NEUROSCOPE_SAE_RELEASE: gpt2-small-res-jb
           NEUROSCOPE_SAE_LAYER: 7
-          GEMINI_API_KEY: mock_key_for_ci
+          GROQ_API_KEY: mock_key_for_ci
         run: |
           python backend/scratch_verify_v3.py
           cd backend

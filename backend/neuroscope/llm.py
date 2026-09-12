@@ -1,7 +1,6 @@
-"""Google Gemini client for NL circuit query explanations.
+"""Groq client for NL circuit query explanations.
 
-Uses the official google-generativeai Python SDK with gemini-1.5-flash.
-100% free under Google AI Studio free tier limits.
+Uses the official groq Python SDK with llama3-70b-8192.
 """
 from __future__ import annotations
 
@@ -9,25 +8,24 @@ import json
 import logging
 import os
 
-import google.generativeai as genai
+from groq import AsyncGroq
 
 logger = logging.getLogger(__name__)
 
-_initialized = False
+_client: AsyncGroq | None = None
 
 
-def _init_client():
-    global _initialized
-    if not _initialized:
-        api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("ANTHROPIC_API_KEY")
+def _get_client() -> AsyncGroq:
+    global _client
+    if _client is None:
+        api_key = os.environ.get("GROQ_API_KEY")
         if not api_key:
             raise EnvironmentError(
-                "GEMINI_API_KEY not set. "
+                "GROQ_API_KEY not set. "
                 "Add it to backend/.env."
             )
-        # Configure the Google GenAI SDK
-        genai.configure(api_key=api_key)
-        _initialized = True
+        _client = AsyncGroq(api_key=api_key)
+    return _client
 
 
 SYSTEM_QUERY = """You are a mechanistic interpretability assistant for NeuroScope.
@@ -52,52 +50,48 @@ Acknowledge what the data cannot show (e.g. correlation vs causation).
 
 
 async def ask(query: str, context: dict, session_id: str) -> str:
-    """Answer a natural language question about a trajectory using Gemini."""
-    _init_client()
+    """Answer a natural language question about a trajectory using Groq."""
     try:
-        model = genai.GenerativeModel(
-            model_name="gemini-2.5-flash",
-            system_instruction=SYSTEM_QUERY
-        )
-        prompt = (
-            f"Trajectory data (JSON):\n{json.dumps(context, indent=2)}"
-            f"\n\nQuestion: {query}"
-        )
-        response = await model.generate_content_async(
-            prompt,
-            generation_config=genai.types.GenerationConfig(
-                max_output_tokens=512,
-            )
-        )
-        return response.text
-    except Exception as e:
-        logger.exception("Gemini API error for query (session=%s)", session_id)
-        if os.environ.get("GEMINI_API_KEY") == "mock_key_for_ci":
+        if os.environ.get("GROQ_API_KEY") == "mock_key_for_ci":
             return "Mock response: The most active feature in step 1 at layer 12 was feature 8421."
+        
+        client = _get_client()
+        prompt = (
+            f"Trajectory data (JSON):\n{json.dumps(context, indent=2)}\n\nQuestion: {query}"
+        )
+        response = await client.chat.completions.create(
+            model="llama3-70b-8192",
+            messages=[
+                {"role": "system", "content": SYSTEM_QUERY},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=512,
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        logger.exception("Groq API error for query (session=%s)", session_id)
         return f"[Query error: {type(e).__name__}: {e}]"
 
 
 async def report(context: dict, session_id: str) -> str:
-    """Generate a research finding paragraph for a trajectory using Gemini."""
-    _init_client()
+    """Generate a research finding paragraph for a trajectory using Groq."""
     try:
-        model = genai.GenerativeModel(
-            model_name="gemini-2.5-flash",
-            system_instruction=SYSTEM_REPORT
-        )
-        prompt = (
-            f"Trajectory data (JSON):\n{json.dumps(context, indent=2)}"
-            f"\n\nWrite the finding paragraph."
-        )
-        response = await model.generate_content_async(
-            prompt,
-            generation_config=genai.types.GenerationConfig(
-                max_output_tokens=256,
-            )
-        )
-        return response.text
-    except Exception as e:
-        logger.exception("Gemini API error for report (session=%s)", session_id)
-        if os.environ.get("GEMINI_API_KEY") == "mock_key_for_ci":
+        if os.environ.get("GROQ_API_KEY") == "mock_key_for_ci":
             return "Mock report: At step 1, layer 12, feature 8421 was active. KL divergence shifted."
+            
+        client = _get_client()
+        prompt = (
+            f"Trajectory data (JSON):\n{json.dumps(context, indent=2)}\n\nWrite the finding paragraph."
+        )
+        response = await client.chat.completions.create(
+            model="llama3-70b-8192",
+            messages=[
+                {"role": "system", "content": SYSTEM_REPORT},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=256,
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        logger.exception("Groq API error for report (session=%s)", session_id)
         return f"[Report error: {type(e).__name__}: {e}]"

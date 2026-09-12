@@ -298,15 +298,15 @@ print(f"   hallucination scoring done ({time.time()-t0:.1f}s)")
 # -----------------------------------------------------------------------------
 # Section 6 — Anthropic LLM NL explanation
 # -----------------------------------------------------------------------------
-print("\n[7/9] Asking Gemini to explain the trajectory...")
+print("\n[7/9] Asking Groq to explain the trajectory...")
 t0 = time.time()
 
 try:
-    import google.generativeai as genai
+    from groq import Groq
 
-    GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY") or os.environ.get("ANTHROPIC_API_KEY")
-    if not GEMINI_API_KEY:
-        raise ValueError("Neither GEMINI_API_KEY nor ANTHROPIC_API_KEY env var is set")
+    GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
+    if not GROQ_API_KEY:
+        raise ValueError("GROQ_API_KEY env var is not set")
 
     summary = {
         "task": TASK,
@@ -328,31 +328,30 @@ try:
     }
 
     system_msg = (
-        "You are a mechanistic interpretability assistant for the NeuroScope tool. "
-        "Given a multi-step agent trajectory plus its captured internals (SAE features, "
+        "You are an AI interpretability researcher analyzing Gemma-2-2b-it with GemmaScope. "
+        "Given the trajectory data (active SAE features at resid_post, "
         "cross-step patching KL, hallucination signals), explain in 4-6 sentences what "
         "the data shows about the model's reasoning process. Cite specific steps, "
         "features, and layers. Be technically precise. Acknowledge uncertainty."
     )
 
-    genai.configure(api_key=GEMINI_API_KEY)
-    model = genai.GenerativeModel(
-        model_name="gemini-2.5-flash",
-        system_instruction=system_msg
-    )
+    client = Groq(api_key=GROQ_API_KEY)
     prompt = (
-        "Trajectory data (JSON):\n" + json.dumps(summary, indent=2)
-        + "\n\nQuestion: Looking at the cross-step patch result and drift scores, "
+        f"Trajectory data:\n{json.dumps(summary, indent=2)}\n\n"
+        "Question: Looking at the cross-step patch result and drift scores, "
         "did internal state at step 1 causally influence step 3's output? "
         "What does the hallucination timeline suggest?"
     )
-    response = model.generate_content(
-        prompt,
-        generation_config=genai.types.GenerationConfig(
-            max_output_tokens=512,
-        )
+    
+    response = client.chat.completions.create(
+        model="llama3-70b-8192",
+        messages=[
+            {"role": "system", "content": system_msg},
+            {"role": "user", "content": prompt}
+        ],
+        max_tokens=512,
     )
-    answer = response.text
+    answer = response.choices[0].message.content
     print(f"      LLM responded ({time.time()-t0:.1f}s):")
     print("      " + "\n      ".join(answer.split("\n")))
 except Exception as e:
