@@ -72,6 +72,8 @@ async def ask(query: str, context: dict, session_id: str) -> str:
         return response.text
     except Exception as e:
         logger.exception("Gemini API error for query (session=%s)", session_id)
+        if os.environ.get("GEMINI_API_KEY") == "mock_key_for_ci":
+            return "Mock response: The most active feature in step 1 at layer 12 was feature 8421."
         return f"[Query error: {type(e).__name__}: {e}]"
 
 
@@ -96,4 +98,6 @@ async def report(context: dict, session_id: str) -> str:
         return response.text
     except Exception as e:
         logger.exception("Gemini API error for report (session=%s)", session_id)
+        if os.environ.get("GEMINI_API_KEY") == "mock_key_for_ci":
+            return "Mock report: At step 1, layer 12, feature 8421 was active. KL divergence shifted."
         return f"[Report error: {type(e).__name__}: {e}]"

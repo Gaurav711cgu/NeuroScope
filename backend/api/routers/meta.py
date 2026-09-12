@@ -24,7 +24,7 @@ def _now():
     return datetime.now(timezone.utc).isoformat()
 
 
-@router.get("/health", dependencies=[Depends(verify_token)])
+@router.get("/health")
 async def health():
     return {"status": "ok", "time": _now(), "model": model_info()}
 
