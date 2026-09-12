@@ -64,9 +64,13 @@ jobs:
           GEMINI_API_KEY: mock_key_for_ci
         run: |
           python backend/scratch_verify_v3.py
-          # Seed the database and start the server in the background for API tests
-          cd backend && python seed_experiments.py && uvicorn server:app --port 8000 &
+          cd backend
+          # Seed the database synchronously
+          python seed_experiments.py
+          # Start the server in the background for API tests
+          uvicorn server:app --port 8000 &
           sleep 5  # Give the server time to start
+          cd ..
           python backend_test.py
 
   frontend-build:

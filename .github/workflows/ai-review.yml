@@ -46,10 +46,10 @@ jobs:
                 role: "user",
                 content: `Review this PR diff and provide feedback:
                 
-                Changed files: ${{ steps.changed.outputs.files }}
+                Changed files: ${process.env.CHANGED_FILES}
                 
                 Diff:
-                ${{ steps.diff.outputs.diff }}
+                ${process.env.PR_DIFF}
                 
                 Provide:
                 1. Summary of changes
@@ -70,3 +70,5 @@ jobs:
             });
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CHANGED_FILES: ${{ steps.changed.outputs.files }}
+          PR_DIFF: ${{ steps.diff.outputs.diff }}
