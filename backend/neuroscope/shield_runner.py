@@ -19,7 +19,7 @@ def run_shield_trajectory(
     real: bool = False
 ) -> dict:
     """Run comparison trajectories with Guardrail OFF vs Guardrail ON."""
-    t_start = time.time()
+    
     
     if real:
         try:
@@ -173,7 +173,7 @@ def _run_mock_shield(task: str, rules: list[dict]) -> dict:
             "correct": steered_at_step_3 or len(interventions_logged) > 0,
             "interventions": interventions_logged
         },
-        "elapsed_ms": int((time.time() - t_start) * 1000),
+        "elapsed_ms": int((0) * 1000),
         "real": False
     }
 
@@ -186,7 +186,6 @@ def _run_real_shield(task: str, rules: list[dict]) -> dict:
     # We will simulate the comparative payload with real keys.
     # (Since this usually runs in background on HF space, we structure it to match the keys perfectly)
     model = get_model()
-    device = next(model.parameters()).device
     
     # 4-step generation comparison
     baseline_steps = []

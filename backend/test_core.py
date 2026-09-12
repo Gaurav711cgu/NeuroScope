@@ -191,7 +191,7 @@ drift_scores = {fid: float(np.var(t)) for fid, t in feature_timelines.items()}
 top_drifting = sorted(drift_scores, key=drift_scores.get, reverse=True)[:8]
 print(f"      tracked {len(feature_timelines)} unique features across 3 steps "
       f"({time.time()-t0:.1f}s)")
-print(f"      top 8 drifting features (by variance):")
+print("      top 8 drifting features (by variance):")
 for fid in top_drifting:
     print(f"         feat#{fid:>5d}  drift={drift_scores[fid]:.3f}  "
           f"timeline={[round(v,2) for v in feature_timelines[fid]]}")
@@ -241,7 +241,7 @@ for idx in top_changes_idx:
 significant = kl > 0.05
 print(f"      KL(patched || baseline) = {kl:.4f}  "
       f"({'SIGNIFICANT' if significant else 'not significant'})  ({time.time()-t0:.1f}s)")
-print(f"      top token shifts:")
+print("      top token shifts:")
 for c in token_changes:
     arrow = "↑" if c["delta"] > 0 else "↓"
     print(f"         {arrow} token {c['token']:<15s}  base={c['baseline_p']:.3f}  patched={c['patched_p']:.3f}  Δ={c['delta']:+.3f}")

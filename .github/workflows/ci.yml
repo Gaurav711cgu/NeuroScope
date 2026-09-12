@@ -43,7 +43,7 @@ jobs:
 
       - name: Code Quality & Formatting Check (Ruff)
         run: |
-          ruff check backend/ --ignore E501,F401,E402
+          ruff check backend/ --select E,F --ignore E501,F401,E402
 
       - name: Security Vulnerability Scan (Bandit)
         run: |

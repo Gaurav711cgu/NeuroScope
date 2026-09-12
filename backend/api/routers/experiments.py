@@ -5,6 +5,7 @@ import json
 import logging
 import random
 from pathlib import Path
+import uuid
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from typing import Optional
