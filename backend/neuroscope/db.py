@@ -22,7 +22,7 @@ def _key_to_int(key: str | uuid.UUID) -> int:
     """Hash a string/UUID to a signed 31-bit integer for PG advisory locks."""
     if isinstance(key, uuid.UUID):
         return key.int & 0x7FFFFFFF
-    return int(hashlib.md5(str(key).encode()).hexdigest(), 16) & 0x7FFFFFFF
+    return int(hashlib.md5(str(key).encode(), usedforsecurity=False).hexdigest(), 16) & 0x7FFFFFFF
 
 
 @asynccontextmanager

@@ -56,7 +56,7 @@ def generate_mock_trajectory(item: dict, step_n: int, final_correct: bool, seed:
     import random
     import hashlib
     if isinstance(item.get("id"), str):
-        id_hash = int(hashlib.md5(item["id"].encode()).hexdigest(), 16) % 1000000
+        id_hash = int(hashlib.md5(item["id"].encode(), usedforsecurity=False).hexdigest(), 16) % 1000000
     else:
         id_hash = item.get("id", 0)
     random.seed(seed + id_hash)

@@ -21,7 +21,7 @@ def load_triviaqa_sample(n: int = 200, seed: int = 42) -> list[dict]:
         CACHE_DIR.mkdir(parents=True, exist_ok=True)
         # Try loading from HF Hub with a short mock verify or check
         logger.info("Attempting to load TriviaQA from Hugging Face...")
-        ds = load_dataset("mandarjoshi/trivia_qa", "unfiltered", split="train", cache_dir=str(CACHE_DIR))
+        ds = load_dataset("mandarjoshi/trivia_qa", "unfiltered", split="train", cache_dir=str(CACHE_DIR))  # nosec B615
         ds = ds.shuffle(seed=seed).select(range(min(n, len(ds))))
         return [
             {
@@ -62,7 +62,7 @@ def load_hotpotqa_sample(n: int = 100, seed: int = 42) -> list[dict]:
             raise RuntimeError("Offline mode requested via NEUROSCOPE_OFFLINE environment variable.")
         CACHE_DIR.mkdir(parents=True, exist_ok=True)
         logger.info("Attempting to load HotpotQA from Hugging Face...")
-        ds = load_dataset("hotpotqa/hotpot_qa", "distractor", split="train", cache_dir=str(CACHE_DIR))
+        ds = load_dataset("hotpotqa/hotpot_qa", "distractor", split="train", cache_dir=str(CACHE_DIR))  # nosec B615
         ds = ds.shuffle(seed=seed).select(range(min(n, len(ds))))
         return [
             {

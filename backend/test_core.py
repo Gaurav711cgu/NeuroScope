@@ -19,6 +19,7 @@ from __future__ import annotations
 import os
 import sys
 import time
+import tempfile
 import json
 import warnings
 from pathlib import Path
@@ -363,7 +364,7 @@ except Exception as e:
 # -----------------------------------------------------------------------------
 print("\n[8/9] Saving activation artifacts to disk (float16 npz)...")
 t0 = time.time()
-artifact_dir = Path("/tmp/neuroscope_poc")
+artifact_dir = Path(tempfile.gettempdir()) / "neuroscope_poc"
 artifact_dir.mkdir(parents=True, exist_ok=True)
 for s in steps:
     np.savez_compressed(
