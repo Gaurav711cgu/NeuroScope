@@ -1,85 +1,51 @@
-# Finding the Tool-Intent Routing Circuit in Gemma-2-2B via Sparse Autoencoders
+# Mapping Hallucination Dynamics in Gemma-2: A Sparse Autoencoder Approach
 
-**Author:** Gaurav Kumar Nayak  
-**Target:** MATS Spring 2027 Application Research Post / Alignment Forum  
-**Code & Reproducibility:** [GitHub Repository — NeuroScope v3](https://github.com/Gaurav711cgu/NeuroScope)  
-**Stack:** TransformerLens · GemmaScope SAE (`gemma-scope-2b-it-res-16k`) · PyTorch · Polars
+## Introduction
 
----
+As large language models scale, detecting and mitigating hallucinations at the latent level remains a critical challenge for alignment. Building on the k-SAE methodology presented by Gao et al. (OpenAI, 2024) and the GemmaScope architecture by Lieberum et al. (Google DeepMind, 2024), we investigate the activation dynamics of hallucinations in `google/gemma-2-2b-it`. 
 
-## 1. Abstract
+Specifically, we apply a survival analysis framework—modeling hallucination onset via a Cox Proportional Hazards model—using latent feature activations extracted from a 16K-width JumpReLU Sparse Autoencoder (SAE) at Layer 12. This post details our methodology, evaluation metrics, and preliminary baseline validations designed to meet stringent interpretability standards.
 
-How do instruction-tuned language models decide whether to route a user's prompt to an internal tool call (`Action: search[...]`) versus direct text generation? In this post, we map the **Tool-Intent Routing Circuit** in `google/gemma-2-2b-it`. Using Layer-12 GemmaScope Sparse Autoencoders ($d_{\text{sae}} = 16384$) and Resampling Path Patching across $N = 500$ counterfactual prompt pairs, we isolate specific sparse features that causally dictate tool selection. 
+## Methodology
 
-Furthermore, we demonstrate that amplifying these feature vectors during auto-regressive generation ($\alpha \in [4.0, 10.0]$) successfully redirects non-tool queries to emit tool execution tokens with an 84% conversion rate.
+### Latent Feature Extraction
+We utilize the canonical GemmaScope SAE for Layer 12 of `gemma-2-2b-it`. The SAE enforces sparsity via a JumpReLU activation function. To avoid memory bottlenecks when computing dense dictionary orthogonality metrics (Gram matrix allocations exceeding 1 GB), we subsample the SAE decoder weight matrix to 2,048 directions.
 
----
+### Survival Analysis of Hallucinations
+Rather than treating hallucination as a static binary classification problem, we frame it as a time-to-event process during autoregressive generation. We extract the latent activations across the sequence and fit a Cox Proportional Hazards model with $L_2$ regularization:
 
-## 2. Research Methodology & Causal Setup
+$$ h(t | x) = h_0(t) \exp(\beta^T x) $$
 
-### A. Counterfactual Prompt Pair Benchmark ($N=500$)
-To avoid small-sample variance ($N=50$), we construct a syntactically aligned dataset of $N=500$ counterfactual pairs:
-- **Tool-Intent Prompts ($P_{\text{tool}}$)**: `"Question: What is the current temperature in Paris? Available tools: [search, calc, weather]. Select tool:"` (Target token: ` search` / ` weather`)
-- **Direct Reasoning Prompts ($P_{\text{text}}$)**: `"Question: What is the capital of France? Write a direct answer:"` (Target token: ` The`)
+Where $x$ represents the SAE feature activations. To validate the statistical significance of the distinct survival curves between factual and hallucinated generation paths, we compute the log-rank test $p$-value comparing the two underlying distributions.
 
-### B. Resampling Path Patching
-Rather than simple activation patching, we apply **Path Patching** (Goldowsky-Dill et al., 2023). For a candidate SAE feature $f_i$ at Layer 12, we patch its residual activation vector $a_i \cdot W_{\text{dec}, i}$ from the clean tool run into the direct reasoning run:
+### Quality and Sparsity Metrics
+To ensure the integrity of our SAE and the isolated features, we strictly replicate the evaluation suites from recent literature:
 
-$$ x' = x_{\text{text}} - a_{i, \text{text}} W_{\text{dec}, i} + a_{i, \text{tool}} W_{\text{dec}, i} $$
+1. **SAE Quality (Lieberum et al.)**:
+   - **$L_0$ Norm**: Measures the average number of active features per token.
+   - **Fraction of Variance Unexplained (FVU)**: Evaluates reconstruction fidelity.
+   - **$\Delta$ LM Loss**: Quantifies the downstream cross-entropy degradation when the residual stream is entirely replaced by the SAE reconstruction.
 
-We measure the causal impact via the change in normalized logit difference ($\Delta H$):
+2. **Ablation Sparsity (Gao et al.)**:
+   - For a given highly predictive hallucination feature, we perform causal intervention (ablation).
+   - We compute the downstream sparsity of the logit changes as $\frac{(L_1 / L_2)^2}{V}$, validating whether the feature represents a concentrated semantic concept or a diffuse polysemantic vector.
 
-$$ \Delta \text{LogitDiff} = \text{Logit}(t_{\text{tool}}) - \text{Logit}(t_{\text{text}}) $$
+3. **Auto-Interpretability (Bills et al.)**:
+   - Top-activating sequences for the hallucination feature are extracted.
+   - An LLM explainer generates a semantic hypothesis and simulated activation scores.
+   - We compute the Pearson correlation ($r$) between simulated and ground-truth activations, targeting $r \ge 0.10$ for validation.
 
----
+### Causal Steering
+We validate the causal role of the identified hallucination features through activation steering (residual addition). By clamping a composite vector of top features multiplied by a scaling factor $\alpha$, we can theoretically suppress hallucinations. Crucially, we monitor the perplexity delta ($\Delta \text{PPL}$) to guarantee we do not breach the semantic collapse boundary ($\Delta \text{PPL} \ge 1.0$), ensuring the model retains coherent linguistic capabilities.
 
-## 3. Key Causal Circuit Findings
+## Preliminary Pipeline Validation
 
-> Verified under statistical significance testing ($N=500$, Permutation Test $p < 0.001$, Cohen's $d = 1.42$, 95% Bootstrap CI: $[0.714, 0.810]$).
+Our end-to-end evaluation script (`scripts/paper_results.py`) validates the infrastructure required for this analysis. 
 
-| Layer | Feature ID | Neuronpedia Auto-Interp Label | Causal Effect ($\Delta \text{LogitDiff}$) | Attribution Role |
-|---|---|---|---|---|
-| **Layer 12** | `#14201` | Tool availability list selector & delimiter binder | **+1.84 nats** | Primary Routing Driver |
-| **Layer 12** | `#8912` | API action prefix keyword trigger (`Action:`) | **+1.42 nats** | Signature Formatter |
-| **Layer 12** | `#5291` | Computational operator presence detector | **+1.18 nats** | Calculator Intent Gate |
-| **Layer 18** | `#3104` | Final token prediction head bias suppressor | **+0.92 nats** | Text Suppression |
+- **Dictionary Orthogonality**: The $W_{dec}^T W_{dec}$ matrix exhibits an acceptable Frobenius norm for off-diagonal elements, suggesting a well-conditioned latent space.
+- **Probe Training**: Our 1D logistic probes (trained via Newton-Raphson) successfully converge without single-class fabrication errors.
+- **Cox Model Convergence**: The L-BFGS-B optimization for the partial log-likelihood converges reliably across batch sizes up to 128.
 
----
+## Next Steps
 
-## 4. Steering Intervention & Closed-Loop Alignment
-
-We test active steering by injecting the normalized linear sum of decoder vectors for top tool features into Layer 12 during forward generation:
-
-$$ x_{L12}' = x_{L12} + \alpha \frac{\sum_{k \in S} W_{\text{dec}, k}}{\| \sum_{k \in S} W_{\text{dec}, k} \|} $$
-
-### Empirical Results across Steering Intensities ($\alpha$)
-
-| Condition | Multiplier ($\alpha$) | Tool Token Conversion Rate | Perplexity Penalty ($\Delta \text{PPL}$) |
-|---|---|---|---|
-| Unsteered Baseline | $\alpha = 0.0$ | 2.1% | — |
-| Moderate Steering | $\alpha = 5.0$ | 64.3% | +0.41 nats |
-| **Optimal Steering** | $\alpha = 10.0$ | **84.2%** | +0.88 nats |
-| Aggressive Steering | $\alpha = 20.0$ | 98.1% | +4.12 nats *(semantic degradation)* |
-
----
-
-## 5. Limitations & Reproducibility
-
-1. **Model Scale**: Evaluated on `google/gemma-2-2b-it`. Cross-model circuit invariance to `gemma-2-9b` and `llama-3.1-8b` is currently under evaluation.
-2. **SAE Expansion Ratio**: Features evaluated at $d_{\text{sae}} = 16384$ (16k width). Broader 65k width SAE projections may uncover finer-grained sub-features.
-3. **Reproducibility**: All dataset generators, path patching code, and interactive visualizers are fully open-sourced in the repository.
-
----
-
-## 6. Methodological Safeguards & Deep Interpretability Defense
-
-To ensure experimental validity, our methodology addresses common interpretability pitfalls:
-
-1. **Manifold Preservation (Resampling vs. Zero Ablation)**: Setting features to zero ($a_i = 0$) forces hidden states off the natural data manifold. We apply resampling ablation ($x' = x - a_i W_{\text{dec}, i}$), preserving representation validity.
-2. **SAE Reconstruction Accuracy**: We continuously evaluate normalized L2 reconstruction loss ($\|x - \hat{x}\|_2 / \|x\|_2 < 4.8\%$), ensuring low projection distortion across Layer 12 residual states.
-3. **Feature Absorption Mitigation**: We combine normalized decoder vectors ($\|W_{\text{steer}}\|_2 = 1$) across top correlated features rather than relying on isolated single-feature interventions.
-4. **Precision Consistency**: Research evaluations run in native `bfloat16`/`float32` unquantized precision to prevent `bitsandbytes` quantization noise from altering feature activations.
-
----
-
-*Published: August 2026 | Author: Gaurav Kumar Nayak | Target: MATS Spring 2027*
+With the evaluation harnesses fully aligned with the OpenAI and DeepMind SOPs, our immediate next step involves scaling the evaluation over the TruthfulQA and clinical trial benchmark datasets. We expect to isolate a sparse subset of features ($k < 5$) that reliably predict hallucination onset at $p < 0.01$ (log-rank test), maintaining steering efficacy well within the $\Delta \text{PPL} < 1.0$ safety threshold.

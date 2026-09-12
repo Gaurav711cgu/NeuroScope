@@ -27,9 +27,11 @@ Top Activating Snippets:
 {activating_snippets}
 
 Your Task:
-Provide a concise, 1-sentence hypothesis explaining what specific semantic, syntactic, or logical concept activates this feature.
+1. Provide a concise, 1-sentence hypothesis explaining what specific semantic, syntactic, or logical concept activates this feature.
+2. For each snippet, provide a simulated activation score (0.0 to 1.0) indicating how strongly you predict the feature would activate on that snippet.
+
 Respond ONLY with the JSON object:
-{{"feature_id": {feature_id}, "explanation": "your explanation here", "confidence": 0.95}}
+{{"feature_id": {feature_id}, "explanation": "your explanation here", "confidence": 0.95, "simulated_activations": [0.9, 0.8]}}
 """
 
 
@@ -93,3 +95,51 @@ def evaluate_auto_interp_prediction_score(
         "recall": round(float(recall), 4),
         "auto_interp_valid": bool(r_val >= 0.60 and f1_score >= 0.65)
     }
+
+def generate_feature_hypothesis(feature_id: int, snippets: list[dict], llm_fn, layer: int = 0) -> dict:
+    """Generate feature hypothesis and simulated activations using LLM."""
+    activating_snippets = ""
+    for idx, s in enumerate(snippets):
+        activating_snippets += f"Snippet {idx+1}: {s.get('prompt', '')}\n"
+        
+    prompt_text = AUTO_INTERP_EXPLAINER_PROMPT.format(
+        feature_id=feature_id,
+        layer=layer,
+        activating_snippets=activating_snippets
+    )
+    
+    try:
+        response = llm_fn(prompt_text)
+        if isinstance(response, str):
+            # Extract JSON block if surrounded by backticks
+            import re
+            m = re.search(r'\{.*\}', response, re.DOTALL)
+            if m:
+                res_dict = json.loads(m.group(0))
+            else:
+                res_dict = json.loads(response)
+        else:
+            res_dict = response
+            
+        explanation = res_dict.get("explanation", "Unknown feature")
+        simulated = res_dict.get("simulated_activations", [0.0]*len(snippets))
+        
+        return {
+            "explanation": explanation,
+            "simulated_activations": simulated
+        }
+    except Exception as e:
+        logger.error("Failed to generate hypothesis: %s", e)
+        return {
+            "explanation": "Failed to parse",
+            "simulated_activations": [0.0]*len(snippets)
+        }
+
+def score_pearson_r(simulated: list[float], ground_truth: list[float]) -> float:
+    """Compute Pearson r score for auto-interp."""
+    if len(simulated) < 2 or len(simulated) != len(ground_truth):
+        return 0.0
+    r_val, _ = stats.pearsonr(simulated, ground_truth)
+    if np.isnan(r_val):
+        return 0.0
+    return float(r_val)

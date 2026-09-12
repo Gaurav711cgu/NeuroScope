@@ -14,6 +14,33 @@ from .ml_ops import semantic_clip
 
 logger = logging.getLogger("neuroscope.probe")
 
+def eval_probe_loss(sae_latents: np.ndarray, binary_labels: np.ndarray) -> float:
+    """1D logistic probe trained with Newton-Raphson on each latent (Gao et al. §4.2).
+    
+    Records best cross-entropy across all latents.
+    """
+    from sklearn.metrics import log_loss
+    best_ce = float('inf')
+    n_latents = sae_latents.shape[1]
+    
+    lr = LogisticRegression(solver='newton-cg', max_iter=100)
+    
+    for i in range(n_latents):
+        X_1d = sae_latents[:, i:i+1]
+        if np.all(X_1d == 0):
+            continue
+            
+        try:
+            lr.fit(X_1d, binary_labels)
+            probs = lr.predict_proba(X_1d)
+            ce = log_loss(binary_labels, probs)
+            if ce < best_ce:
+                best_ce = ce
+        except Exception:
+            pass
+            
+    return float(best_ce) if best_ce != float('inf') else None
+
 
 def cox_partial_log_likelihood(beta, X, T, E, alpha_l2=0.1):
     """Compute L2-penalized negative log partial likelihood for Cox Proportional Hazards model."""
@@ -40,7 +67,7 @@ def cox_partial_log_likelihood(beta, X, T, E, alpha_l2=0.1):
     return neg_log_lik
 
 
-def fit_cox_survival_model(X, T, E, alpha_l2=0.5) -> np.ndarray:
+def fit_cox_survival_model(X, T, E, alpha_l2=0.5) -> tuple[np.ndarray, bool]:
     """Fit a Cox Proportional Hazards model using L2-regularized MLE."""
     n_features = X.shape[1]
     initial_beta = np.zeros(n_features)
@@ -50,7 +77,7 @@ def fit_cox_survival_model(X, T, E, alpha_l2=0.5) -> np.ndarray:
         args=(X, T, E, alpha_l2),
         method="L-BFGS-B"
     )
-    return res.x
+    return res.x, res.success
 
 
 def calculate_kaplan_meier(T, E) -> tuple[list[int], list[float]]:
@@ -161,25 +188,46 @@ async def train_hallucination_probe(
 
     # 1. Fit Logistic Regression Classifier
     if len(np.unique(y)) < 2:
-        probe_accuracy = 1.0
-        cv_auc_mean = 1.0
-        cv_auc_std = 0.0
-        coefs = np.zeros(X.shape[1])
-    else:
-        probe = LogisticRegression(max_iter=1000, C=0.1, solver="liblinear", random_state=42)
-        n_splits = min(5, len(X))
-        cv_scores = cross_val_score(probe, X, y, cv=n_splits, scoring="roc_auc")
-        probe.fit(X, y)
-        probe_accuracy = float((probe.predict(X) == y).mean())
-        cv_auc_mean = float(np.mean(cv_scores))
-        cv_auc_std = float(np.std(cv_scores))
-        coefs = probe.coef_[0]
+        return {
+            "real": False,
+            "error": "single_class"
+        }
+
+    probe = LogisticRegression(max_iter=1000, C=0.1, solver="liblinear", random_state=42)
+    n_splits = min(5, len(X))
+    cv_scores = cross_val_score(probe, X, y, cv=n_splits, scoring="roc_auc")
+    probe.fit(X, y)
+    probe_accuracy = float((probe.predict(X) == y).mean())
+    cv_auc_mean = float(np.mean(cv_scores))
+    cv_auc_std = float(np.std(cv_scores))
+    coefs = probe.coef_[0]
 
     # 2. Fit Cox Proportional Hazards Model
     cox_betas = np.zeros(X.shape[1])
+    cox_fit_success = False
+    log_rank_p_value = 1.0
+    n_events = int(np.sum(E))
+
     if len(np.unique(E)) >= 2:
         try:
-            cox_betas = fit_cox_survival_model(X, T, E, alpha_l2=0.5)
+            cox_betas, cox_fit_success = fit_cox_survival_model(X, T, E, alpha_l2=0.5)
+            
+            import scipy.stats as stats
+            mask_h = (y == 1)
+            mask_f = (y == 0)
+            
+            if np.sum(mask_h) > 0 and np.sum(mask_f) > 0:
+                x_data = stats.CensoredData(
+                    uncensored=T[mask_h & (E == 1)],
+                    right=T[mask_h & (E == 0)]
+                )
+                y_data = stats.CensoredData(
+                    uncensored=T[mask_f & (E == 1)],
+                    right=T[mask_f & (E == 0)]
+                )
+                res_lr = stats.logrank(x=x_data, y=y_data)
+                log_rank_p_value = float(res_lr.pvalue)
+                
         except Exception as e:
             logger.error("Failed to fit Cox proportional hazards model: %s", e)
 
@@ -212,7 +260,10 @@ async def train_hallucination_probe(
         "features": features_weight,
         "survival_analysis": {
             "times": km_times,
-            "survival_probabilities": km_probs
+            "survival_probabilities": km_probs,
+            "cox_fit_success": cox_fit_success,
+            "log_rank_p_value": log_rank_p_value,
+            "n_events": n_events
         },
         "real": True
     }
